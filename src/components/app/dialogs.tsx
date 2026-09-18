@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,12 @@ import { JalaliDateField } from "@/components/app/jalali-date-field";
 import { UnitForm } from "@/components/app/unit-form";
 import { changeAdminEmail, changeAdminPassword } from "@/lib/account-api";
 import { signOut } from "@/lib/auth/client";
+import { buildBackupPayload, downloadJson, parseBackupPayload, type BackupFile } from "@/lib/backup";
 import {
   EXPENSE_LABELS,
   METHOD_LABELS,
+  flushPendingSaves,
+  freshBuilding,
   getCharge,
   getPaid,
   getRemaining,
@@ -18,7 +21,16 @@ import {
   type ExpenseCategory,
   type PaymentMethod,
 } from "@/lib/store";
-import { formatFaDate, jalaliToday, jalaliToIso, monthTitle, parseAmount, toman, chargeAmount } from "@/lib/format";
+import {
+  faNum,
+  formatFaDate,
+  jalaliToday,
+  jalaliToIso,
+  monthTitle,
+  parseAmount,
+  toman,
+  chargeAmount,
+} from "@/lib/format";
 
 export function AppDialogs() {
   return (
@@ -654,7 +666,6 @@ function SettingsDialog() {
   const close = useBuildingStore((s) => s.closeSettings);
   const settings = useBuildingStore((s) => s.settings);
   const updateSettings = useBuildingStore((s) => s.updateSettings);
-  const resetDemo = useBuildingStore((s) => s.resetDemo);
   const [form, setForm] = useState(settings);
 
   useEffect(() => {
@@ -783,20 +794,11 @@ function SettingsDialog() {
         <Button type="submit" size="lg">
           ذخیره تنظیمات
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            resetDemo();
-            close();
-          }}
-        >
-          پاک کردن همه داده‌ها
-        </Button>
       </form>
       {/* Outside the settings <form>: nested forms are invalid HTML and the
           browser would strip the inner ones, breaking both buttons. */}
       <AdminAccountSection />
+      <BackupSection buildingName={settings.buildingName} onCleared={close} />
     </Dialog>
   );
 }
@@ -950,6 +952,190 @@ function AdminAccountSection() {
           </p>
         ) : null}
       </form>
+    </div>
+  );
+}
+
+function BackupSection({
+  buildingName,
+  onCleared,
+}: {
+  buildingName: string;
+  onCleared: () => void;
+}) {
+  const hydrateFrom = useBuildingStore((s) => s.hydrateFrom);
+  const resetDemo = useBuildingStore((s) => s.resetDemo);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupError, setBackupError] = useState<string | null>(null);
+
+  const [restorePending, setRestorePending] = useState<BackupFile | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [restoreBusy, setRestoreBusy] = useState(false);
+  const [restoreDone, setRestoreDone] = useState(false);
+
+  const [clearConfirm, setClearConfirm] = useState(false);
+  const [clearBusy, setClearBusy] = useState(false);
+
+  async function downloadBackup() {
+    setBackupBusy(true);
+    setBackupError(null);
+    try {
+      // Same "don't export a stale cache" pattern the Excel export uses:
+      // wait for queued autosaves, then read the DB fresh.
+      await flushPendingSaves();
+      const { revision: _revision, ...snapshot } = await freshBuilding();
+      const { fileName, json } = buildBackupPayload(snapshot, buildingName);
+      downloadJson(fileName, json);
+    } catch (error) {
+      setBackupError(error instanceof Error ? error.message : "خطا در تهیهٔ نسخهٔ پشتیبان");
+    } finally {
+      setBackupBusy(false);
+    }
+  }
+
+  async function onFileSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // lets the same file be picked again later
+    if (!file) return;
+    setRestoreError(null);
+    setRestoreDone(false);
+    try {
+      const text = await file.text();
+      setRestorePending(parseBackupPayload(text));
+    } catch (error) {
+      setRestorePending(null);
+      setRestoreError(error instanceof Error ? error.message : "این فایل خوانده نشد.");
+    }
+  }
+
+  async function confirmRestore() {
+    if (!restorePending) return;
+    setRestoreBusy(true);
+    setRestoreError(null);
+    try {
+      hydrateFrom(restorePending.data);
+      await flushPendingSaves();
+      setRestorePending(null);
+      setRestoreDone(true);
+    } catch (error) {
+      setRestoreError(error instanceof Error ? error.message : "بازیابی ذخیره نشد — دوباره تلاش کنید.");
+    } finally {
+      setRestoreBusy(false);
+    }
+  }
+
+  async function confirmClear() {
+    setClearBusy(true);
+    try {
+      // Always taken, never skippable by clicking fast — this is the safety
+      // net for exactly the mistake that prompted this feature.
+      await flushPendingSaves();
+      const { revision: _revision, ...snapshot } = await freshBuilding();
+      const { fileName, json } = buildBackupPayload(snapshot, buildingName);
+      downloadJson(fileName, json);
+    } catch {
+      // A failed safety backup must not block the clear the person just
+      // confirmed twice — fall through using whatever's in local state.
+    }
+    resetDemo();
+    setClearBusy(false);
+    setClearConfirm(false);
+    onCleared();
+  }
+
+  return (
+    <div className="mt-6 flex flex-col gap-4 border-t border-border pt-6">
+      <div>
+        <h3 className="font-display text-heading font-medium">پشتیبان‌گیری</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          یک فایل کامل از همهٔ واحدها، شارژها، پرداخت‌ها و هزینه‌ها دانلود کنید — بعداً از همین فایل می‌توانید
+          دقیقاً همین وضعیت را برگردانید.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" disabled={backupBusy} onClick={() => void downloadBackup()}>
+          {backupBusy ? "در حال آماده‌سازی…" : "دانلود نسخهٔ پشتیبان"}
+        </Button>
+        <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+          بازیابی از فایل پشتیبان
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json"
+          className="hidden"
+          onChange={(event) => void onFileSelected(event)}
+        />
+      </div>
+      {backupError ? (
+        <p className="text-sm text-destructive" role="alert">
+          {backupError}
+        </p>
+      ) : null}
+
+      {restoreError ? (
+        <p className="text-sm text-destructive" role="alert">
+          {restoreError}
+        </p>
+      ) : null}
+      {restoreDone ? <p className="text-sm text-muted-foreground">بازیابی انجام شد.</p> : null}
+
+      {restorePending ? (
+        <div className="flex flex-col gap-3 rounded-xl bg-destructive/10 p-4">
+          <p className="text-sm text-destructive">
+            این کار داده‌های فعلی را با نسخهٔ پشتیبان مربوط به {formatFaDate(restorePending.exportedAt)} جایگزین
+            می‌کند: {faNum(restorePending.data.units.length)} واحد، {faNum(restorePending.data.charges.length)}{" "}
+            شارژ، {faNum(restorePending.data.payments.length)} پرداخت و {faNum(restorePending.data.expenses.length)}{" "}
+            هزینه. این کار قابل بازگشت نیست مگر با یک پشتیبان دیگر.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              disabled={restoreBusy}
+              onClick={() => setRestorePending(null)}
+            >
+              لغو
+            </Button>
+            <Button type="button" className="flex-1" disabled={restoreBusy} onClick={() => void confirmRestore()}>
+              {restoreBusy ? "در حال بازیابی…" : "بازیابی شود"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="border-t border-border pt-4">
+        {clearConfirm ? (
+          <div className="flex flex-col gap-3 rounded-xl bg-destructive/10 p-4">
+            <p className="text-sm text-destructive">
+              همهٔ واحدها، شارژها، پرداخت‌ها و هزینه‌ها پاک می‌شود. قبل از پاک شدن، یک نسخهٔ پشتیبان از وضعیت فعلی
+              خودکار دانلود می‌شود.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                disabled={clearBusy}
+                onClick={() => setClearConfirm(false)}
+              >
+                لغو
+              </Button>
+              <Button type="button" className="flex-1" disabled={clearBusy} onClick={() => void confirmClear()}>
+                {clearBusy ? "در حال پاک کردن…" : "پاک کردن شود"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button type="button" variant="ghost" onClick={() => setClearConfirm(true)}>
+            پاک کردن همه داده‌ها
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

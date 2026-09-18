@@ -12,7 +12,7 @@
     "db:migrate": "node scripts/migrate.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --experimental-loader ./src/lib/export-model.test.mjs --test src/lib/export-model.test.ts scripts/migration-plan.test.mjs",
+    "test": "node --experimental-strip-types --experimental-loader ./src/lib/export-model.test.mjs --test src/lib/export-model.test.ts src/lib/backup.test.ts scripts/migration-plan.test.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
