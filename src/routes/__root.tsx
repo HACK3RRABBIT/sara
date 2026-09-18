@@ -18,9 +18,19 @@ export const Route = createRootRoute({
       },
       { name: "theme-color", content: "#161513" },
       { name: "color-scheme", content: "light dark" },
+      // iOS "Add to Home Screen": without these, Safari falls back to a
+      // cropped page screenshot instead of the real icon, and opens back
+      // into a normal Safari tab (address bar and all) instead of its own
+      // window.
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: APP_NAME },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "manifest", href: "/manifest.json" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
