@@ -15,6 +15,7 @@ const snapshotSchema = z.object({
     bank: z.string(),
     baseCharge: z.number(),
     perPerson: z.number(),
+    previousManagerReceivable: z.number(),
   }),
   revision: z.number().int().nonnegative().optional(),
 });

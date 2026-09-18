@@ -32,6 +32,7 @@ export function validateSnapshot(input: {
       bank: String(settings.bank ?? "").slice(0, 100),
       baseCharge: validateFee(settings.baseCharge),
       perPerson: validateFee(settings.perPerson),
+      previousManagerReceivable: validateFee(settings.previousManagerReceivable),
     },
   };
 }

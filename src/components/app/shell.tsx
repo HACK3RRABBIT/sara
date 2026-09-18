@@ -78,8 +78,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link
                   key={link.to}
                   to={link.to}
+                  data-active={active}
                   className={cn(
-                    "text-sm font-medium transition-colors duration-150",
+                    "press nav-underline relative py-1 text-sm font-medium transition-colors duration-150",
                     active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
@@ -126,7 +127,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link
                 key={link.to}
                 to={link.to}
-                className="flex min-h-11 items-center rounded-md px-3 text-base font-medium hover:bg-muted"
+                className="press flex min-h-11 items-center rounded-md px-3 text-base font-medium hover:bg-muted"
               >
                 {link.label}
               </Link>

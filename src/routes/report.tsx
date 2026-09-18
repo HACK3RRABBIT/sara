@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { MonthNav } from "@/components/app/month-nav";
+import { RowMenuHost, useRowMenu } from "@/components/app/context-menu";
 import { Button } from "@/components/ui/button";
 import {
   PAY_FROM,
@@ -36,6 +37,7 @@ function ReportPage() {
   });
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const menu = useRowMenu();
 
   async function exportAll() {
     setExporting(true);
@@ -113,6 +115,9 @@ function ReportPage() {
         <p className="mt-4 text-sm">موجودی صندوق تا امروز: {toman(fund)}</p>
 
         <h3 className="mt-8 font-display text-heading font-medium">وضعیت واحدها</h3>
+        <p className="mt-1 text-xs text-muted-foreground print:hidden">
+          روی هر واحد کلیک راست کنید یا انگشت را نگه دارید تا ویرایش یا پرداخت را باز کنید.
+        </p>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-muted-foreground">
@@ -130,8 +135,27 @@ function ReportPage() {
                 const charge = state.charges.find(
                   (item) => item.unitId === unit.id && item.year === year && item.month === month,
                 );
+                const actions = [
+                  {
+                    label: "ویرایش این ماه",
+                    onSelect: () => state.openLedger({ unitId: unit.id, year, month }),
+                  },
+                  {
+                    label: "ثبت پرداخت",
+                    onSelect: () => state.openPayment({ unitId: unit.id, year, month }),
+                  },
+                ];
                 return (
-                  <tr key={unit.id} className="border-b border-border last:border-0">
+                  <tr
+                    key={unit.id}
+                    className="press select-none border-b border-border last:border-0 hover:bg-muted/50 print:hover:bg-transparent"
+                    onContextMenu={(event) => menu.onContextMenu(event, actions)}
+                    onPointerDown={(event) => menu.onPointerDown(event, actions)}
+                    onPointerMove={menu.onPointerMove}
+                    onPointerUp={menu.onPointerUp}
+                    onPointerCancel={menu.onPointerCancel}
+                    onDoubleClick={() => state.openLedger({ unitId: unit.id, year, month })}
+                  >
                     <td className="py-2">{unit.number}</td>
                     <td className="py-2">{unit.resident}</td>
                     <td className="py-2 tabular-nums">{faNum(unit.occupants)}</td>
@@ -163,6 +187,7 @@ function ReportPage() {
           </ul>
         )}
       </article>
+      <RowMenuHost menu={menu.menu} onClose={menu.close} />
     </div>
   );
 }

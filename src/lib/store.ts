@@ -25,8 +25,10 @@ import {
   monthKey,
   fromMonthKey,
   monthTotals,
+  pendingHandoverTotal,
   reminderText,
   totalDebt,
+  unitDebt,
 } from "@/lib/building-core";
 
 // Re-export the pure model so existing routes keep importing from "@/lib/store".
@@ -45,8 +47,10 @@ export {
   monthKey,
   fromMonthKey,
   monthTotals,
+  pendingHandoverTotal,
   reminderText,
   totalDebt,
+  unitDebt,
 };
 export type {
   BuildingSnapshot,
@@ -65,7 +69,23 @@ export const MAX_UNITS = 10;
 
 const LEGACY_UNIT_NUMBERS = ["۱۰۱", "۱۰۲", "۲۰۱", "۲۰۲", "۳۰۱", "۳۰۲", "۴۰۱", "۴۰۲", "۵۰۱", "۵۰۲"];
 
-const uid = () => crypto.randomUUID();
+// `crypto.randomUUID()` only exists in "secure contexts" — https, or plain
+// http on the exact loopback names localhost/127.0.0.1/[::1]. Self-hosting
+// almost always means reaching this app over plain HTTP on a LAN IP or
+// `0.0.0.0` too, where `randomUUID` is simply undefined — calling it throws
+// and silently breaks every action that creates a record (record a payment,
+// settle a balance, add a unit/expense). `crypto.getRandomValues()` has no
+// such restriction, so build a UUIDv4 from it by hand as the fallback.
+function uid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 10xx
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 export const DEFAULT_SETTINGS: Settings = {
   buildingName: "سرا",
@@ -75,6 +95,7 @@ export const DEFAULT_SETTINGS: Settings = {
   bank: "",
   baseCharge: 1_500_000,
   perPerson: 100_000,
+  previousManagerReceivable: 0,
 };
 
 function unitAmount(settings: Settings, unit: Unit) {
@@ -143,9 +164,10 @@ type BuildingState = DialogState &
     updateSettings: (patch: Partial<Settings>) => void;
     updateCharge: (id: string, patch: Partial<Omit<Charge, "id" | "unitId" | "year" | "month">>) => void;
     ensureCharge: (unitId: string, year: number, month: number) => void;
+    ensureMonthCharges: (year: number, month: number) => void;
+    removeCharge: (id: string) => void;
     clearMonthPayments: (unitId: string, year: number, month: number) => void;
     settleUnitMonth: (unitId: string, year: number, month: number) => void;
-    issueCharges: (year: number, month: number) => { ok: boolean; reason?: string };
     openLedger: (opts: { unitId: string; year: number; month: number }) => void;
     closeLedger: () => void;
     openPayment: (opts?: { unitId?: string; year?: number; month?: number; paymentId?: string }) => void;
@@ -268,6 +290,29 @@ export const useBuildingStore = create<BuildingState>()((set, get) => ({
       ],
     });
   },
+  ensureMonthCharges: (year, month) => {
+    const state = get();
+    // Never silently invent a charge for a month that's already past — a
+    // missing historical charge is either deliberate (removed, or predates
+    // using Sara) and must stay that way until a human explicitly enters one
+    // via the ledger dialog. Auto-fill only ever looks forward from today.
+    const today = jalaliToday();
+    if (monthKey(year, month) < monthKey(today.year, today.month)) return;
+    const missing = state.units.filter((unit) => !getCharge(state, unit.id, year, month));
+    if (missing.length === 0) return;
+    const issuedAt = new Date().toISOString();
+    const next = missing.map((unit) => ({
+      id: uid(),
+      unitId: unit.id,
+      year,
+      month,
+      amount: unitAmount(state.settings, unit),
+      note: `شارژ ${monthTitle(year, month)}`,
+      issuedAt,
+    }));
+    set({ charges: [...state.charges, ...next] });
+  },
+  removeCharge: (id) => set({ charges: get().charges.filter((charge) => charge.id !== id) }),
   clearMonthPayments: (unitId, year, month) =>
     set({
       payments: get().payments.filter(
@@ -294,24 +339,6 @@ export const useBuildingStore = create<BuildingState>()((set, get) => ({
         },
       ],
     });
-  },
-  issueCharges: (year, month) => {
-    const state = get();
-    if (state.charges.some((charge) => charge.year === year && charge.month === month)) {
-      return { ok: false, reason: "شارژ این ماه قبلاً صادر شده است." };
-    }
-    const issuedAt = new Date().toISOString();
-    const next = state.units.map((unit) => ({
-      id: uid(),
-      unitId: unit.id,
-      year,
-      month,
-      amount: unitAmount(state.settings, unit),
-      note: `شارژ ${monthTitle(year, month)}`,
-      issuedAt,
-    }));
-    set({ charges: [...state.charges, ...next] });
-    return { ok: true };
   },
   openPayment: (opts) =>
     set({

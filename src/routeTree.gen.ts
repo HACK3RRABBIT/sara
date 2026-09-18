@@ -15,7 +15,7 @@ import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as UnitsRouteImport } from './routes/units'
-import { Route as UnitsUnitIdRouteImport } from './routes/units.$unitId'
+import { Route as UnitsUnitIdRouteImport } from './routes/units_.$unitId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -49,9 +49,9 @@ const UnitsRoute = UnitsRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const UnitsUnitIdRoute = UnitsUnitIdRouteImport.update({
-  id: '/$unitId',
-  path: '/$unitId',
-  getParentRoute: () => UnitsRoute,
+  id: '/units_/$unitId',
+  path: '/units/$unitId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -65,7 +65,7 @@ export interface FileRoutesByFullPath {
   '/expenses': typeof ExpensesRoute
   '/login': typeof LoginRoute
   '/report': typeof ReportRoute
-  '/units': typeof UnitsRouteWithChildren
+  '/units': typeof UnitsRoute
   '/units/$unitId': typeof UnitsUnitIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -75,7 +75,7 @@ export interface FileRoutesByTo {
   '/expenses': typeof ExpensesRoute
   '/login': typeof LoginRoute
   '/report': typeof ReportRoute
-  '/units': typeof UnitsRouteWithChildren
+  '/units': typeof UnitsRoute
   '/units/$unitId': typeof UnitsUnitIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -86,8 +86,8 @@ export interface FileRoutesById {
   '/expenses': typeof ExpensesRoute
   '/login': typeof LoginRoute
   '/report': typeof ReportRoute
-  '/units': typeof UnitsRouteWithChildren
-  '/units/$unitId': typeof UnitsUnitIdRoute
+  '/units': typeof UnitsRoute
+  '/units_/$unitId': typeof UnitsUnitIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -119,7 +119,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/report'
     | '/units'
-    | '/units/$unitId'
+    | '/units_/$unitId'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -129,7 +129,8 @@ export interface RootRouteChildren {
   ExpensesRoute: typeof ExpensesRoute
   LoginRoute: typeof LoginRoute
   ReportRoute: typeof ReportRoute
-  UnitsRoute: typeof UnitsRouteWithChildren
+  UnitsRoute: typeof UnitsRoute
+  UnitsUnitIdRoute: typeof UnitsUnitIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -177,12 +178,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UnitsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/units/$unitId': {
-      id: '/units/$unitId'
-      path: '/$unitId'
+    '/units_/$unitId': {
+      id: '/units_/$unitId'
+      path: '/units/$unitId'
       fullPath: '/units/$unitId'
       preLoaderRoute: typeof UnitsUnitIdRouteImport
-      parentRoute: typeof UnitsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -194,23 +195,14 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface UnitsRouteChildren {
-  UnitsUnitIdRoute: typeof UnitsUnitIdRoute
-}
-
-const UnitsRouteChildren: UnitsRouteChildren = {
-  UnitsUnitIdRoute: UnitsUnitIdRoute,
-}
-
-const UnitsRouteWithChildren = UnitsRoute._addFileChildren(UnitsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChargesRoute: ChargesRoute,
   ExpensesRoute: ExpensesRoute,
   LoginRoute: LoginRoute,
   ReportRoute: ReportRoute,
-  UnitsRoute: UnitsRouteWithChildren,
+  UnitsRoute: UnitsRoute,
+  UnitsUnitIdRoute: UnitsUnitIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

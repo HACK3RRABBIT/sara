@@ -18,6 +18,7 @@ const defaults = {
   bank: "",
   baseCharge: 1_500_000,
   perPerson: 100_000,
+  previousManagerReceivable: 0,
 };
 
 function snapshot(over: Partial<BuildingSnapshot> = {}): BuildingSnapshot {

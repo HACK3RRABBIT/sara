@@ -54,6 +54,14 @@ export type Payment = {
   method: PaymentMethod;
   date: string;
   note: string;
+  /**
+   * The resident paid, but the money isn't in this building's treasury yet —
+   * e.g. paid to a previous manager who hasn't handed it over. Counts toward
+   * the unit's paid/remaining status (the resident isn't a debtor), but is
+   * excluded from `fundBalance`/`fundBalanceThrough` (not real cash on hand
+   * yet). Clear it once the money is actually received.
+   */
+  pendingHandover?: boolean;
 };
 
 export type Expense = {
@@ -74,6 +82,10 @@ export type Settings = {
   bank: string;
   baseCharge: number;
   perPerson: number;
+  /** Money residents already paid that hasn't reached this treasury yet —
+   * e.g. still held by a previous manager. A running estimate you edit
+   * yourself; shown on the dashboard, excluded from the actual fund balance. */
+  previousManagerReceivable: number;
 };
 
 export type SeedSlice = {
@@ -188,6 +200,12 @@ export function monthDebt(state: SeedSlice, year: number, month: number) {
     .reduce((sum, charge) => sum + getRemaining(state, charge.unitId, year, month), 0);
 }
 
+export function unitDebt(state: SeedSlice, unitId: string) {
+  return state.charges
+    .filter((charge) => charge.unitId === unitId)
+    .reduce((sum, charge) => sum + getRemaining(state, unitId, charge.year, charge.month), 0);
+}
+
 export function totalDebt(state: SeedSlice) {
   const keys = new Set(state.charges.map((c) => monthKey(c.year, c.month)));
   return [...keys].reduce((sum, key) => {
@@ -197,7 +215,9 @@ export function totalDebt(state: SeedSlice) {
 }
 
 export function fundBalance(state: SeedSlice) {
-  const income = state.payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const income = state.payments
+    .filter((payment) => !payment.pendingHandover)
+    .reduce((sum, payment) => sum + payment.amount, 0);
   const spent = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
   return income - spent;
 }
@@ -205,7 +225,7 @@ export function fundBalance(state: SeedSlice) {
 export function fundBalanceThrough(state: SeedSlice, year: number, month: number) {
   const bound = monthKey(year, month);
   const income = state.payments
-    .filter((p) => monthKey(p.year, p.month) <= bound)
+    .filter((p) => !p.pendingHandover && monthKey(p.year, p.month) <= bound)
     .reduce((sum, p) => sum + p.amount, 0);
   const spent = state.expenses
     .filter((e) => {
@@ -214,6 +234,14 @@ export function fundBalanceThrough(state: SeedSlice, year: number, month: number
     })
     .reduce((sum, e) => sum + e.amount, 0);
   return income - spent;
+}
+
+/** Total still owed to the fund by a previous manager (or similar) — paid by
+ * residents but not yet physically handed into this treasury. */
+export function pendingHandoverTotal(state: SeedSlice) {
+  return state.payments
+    .filter((payment) => payment.pendingHandover)
+    .reduce((sum, payment) => sum + payment.amount, 0);
 }
 
 export function reminderText(state: SeedSlice, unit: Unit, year: number, month: number) {

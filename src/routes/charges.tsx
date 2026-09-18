@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { MonthNav } from "@/components/app/month-nav";
 import { RowMenuHost, useRowMenu } from "@/components/app/context-menu";
@@ -35,19 +35,18 @@ function ChargesPage() {
   const [{ year, month }, setCursor] = useState({ year: today.year, month: today.month });
   const state = useBuildingStore();
   const totals = monthTotals(state, year, month);
-  const issued = state.charges.some((charge) => charge.year === year && charge.month === month);
   const [message, setMessage] = useState<string | null>(null);
   const windowEnd = payWindowEnd(year, month);
   const menu = useRowMenu();
 
-  function issue() {
-    const result = state.issueCharges(year, month);
-    setMessage(
-      result.ok
-        ? `شارژ ${monthTitle(year, month)} برای ${new Intl.NumberFormat("fa-IR").format(state.units.length)} واحد صادر شد.`
-        : (result.reason ?? null),
-    );
-  }
+  // Charges are computed from each unit's occupant count the moment a month
+  // is viewed — no manual "issue" step. This only fills in units missing a
+  // charge for (year, month); an already-issued or hand-edited amount is
+  // never touched.
+  useEffect(() => {
+    if (!state.hydrated) return;
+    state.ensureMonthCharges(year, month);
+  }, [state, year, month]);
 
   async function copyReminders() {
     const lines = state.units
@@ -110,9 +109,6 @@ function ChargesPage() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" onClick={issue} disabled={issued}>
-          {issued ? "شارژ این ماه صادر شده" : "صدور شارژ این ماه"}
-        </Button>
         <Button type="button" variant="outline" onClick={() => void copyReminders()}>
           کپی یادآوری بدهکاران
         </Button>
@@ -158,7 +154,7 @@ function ChargesPage() {
               return (
                 <tr
                   key={unit.id}
-                  className="select-none border-b border-border last:border-0 hover:bg-muted/50"
+                  className="press select-none border-b border-border last:border-0 hover:bg-muted/50"
                   onContextMenu={(event) => menu.onContextMenu(event, actions)}
                   onPointerDown={(event) => menu.onPointerDown(event, actions)}
                   onPointerMove={menu.onPointerMove}
@@ -186,6 +182,9 @@ function ChargesPage() {
                           }}
                         >
                           {formatFaDate(payment.date)} · {toman(payment.amount)} · {METHOD_LABELS[payment.method]}
+                          {payment.pendingHandover ? (
+                            <span className="text-destructive"> · در انتظار تحویل</span>
+                          ) : null}
                         </button>
                       ))
                     )}

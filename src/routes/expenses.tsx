@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { RowMenuHost, useRowMenu } from "@/components/app/context-menu";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/select";
 import { formatFaDate, jalaliToday, toman } from "@/lib/format";
@@ -13,6 +14,7 @@ function ExpensesPage() {
   const openExpense = useBuildingStore((s) => s.openExpense);
   const [category, setCategory] = useState<ExpenseCategory | "all">("all");
   const [pending, setPending] = useState<string | null>(null);
+  const menu = useRowMenu();
 
   const rows = useMemo(() => {
     return [...expenses]
@@ -35,6 +37,9 @@ function ExpensesPage() {
           <h1 className="font-display text-title font-medium">هزینه‌های ساختمان</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             این ماه {toman(monthSpend)} خرج شده. مجموع فهرست فیلترشده {toman(total)}.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            روی هر هزینه کلیک راست کنید یا انگشت را نگه دارید تا حذف کنید.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -65,7 +70,16 @@ function ExpensesPage() {
           {rows.map((item) => (
             <li
               key={item.id}
-              className="flex flex-col gap-3 rounded-2xl bg-card p-5 shadow-[var(--shadow-border)] sm:flex-row sm:items-center sm:justify-between"
+              className="press flex select-none flex-col gap-3 rounded-2xl bg-card p-5 shadow-[var(--shadow-border)] sm:flex-row sm:items-center sm:justify-between"
+              onContextMenu={(event) =>
+                menu.onContextMenu(event, [{ label: "حذف", onSelect: () => setPending(item.id), danger: true }])
+              }
+              onPointerDown={(event) =>
+                menu.onPointerDown(event, [{ label: "حذف", onSelect: () => setPending(item.id), danger: true }])
+              }
+              onPointerMove={menu.onPointerMove}
+              onPointerUp={menu.onPointerUp}
+              onPointerCancel={menu.onPointerCancel}
             >
               <div>
                 <p className="font-medium">{item.title}</p>
@@ -75,7 +89,7 @@ function ExpensesPage() {
                 </p>
                 {item.note ? <p className="mt-1 text-sm text-muted-foreground">{item.note}</p> : null}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3" onPointerDown={(event) => event.stopPropagation()}>
                 <p className="font-display text-xl font-medium">{toman(item.amount)}</p>
                 {pending === item.id ? (
                   <div className="flex gap-2">
@@ -103,6 +117,7 @@ function ExpensesPage() {
           ))}
         </ul>
       )}
+      <RowMenuHost menu={menu.menu} onClose={menu.close} />
     </div>
   );
 }

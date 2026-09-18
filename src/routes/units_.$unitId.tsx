@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { RowMenuHost, useRowMenu } from "@/components/app/context-menu";
 import { StatusBadge } from "@/components/app/status-badge";
 import { UnitForm } from "@/components/app/unit-form";
 import { chargeAmount, faNum, formatFaDate, jalaliToday, monthTitle, toman } from "@/lib/format";
@@ -12,7 +13,7 @@ import {
   useBuildingStore,
 } from "@/lib/store";
 
-export const Route = createFileRoute("/units/$unitId")({ component: UnitDetailPage });
+export const Route = createFileRoute("/units_/$unitId")({ component: UnitDetailPage });
 
 function UnitDetailPage() {
   const { unitId } = Route.useParams();
@@ -21,6 +22,7 @@ function UnitDetailPage() {
   const unit = state.units.find((item) => item.id === unitId);
   const today = jalaliToday();
   const [pending, setPending] = useState<string | null>(null);
+  const menu = useRowMenu();
 
   if (!unit) {
     return (
@@ -109,69 +111,100 @@ function UnitDetailPage() {
 
       <section className="rounded-2xl bg-card p-5 shadow-[var(--shadow-border)] sm:p-6">
         <h2 className="font-display text-heading font-medium">پرداختی‌ها</h2>
-        <p className="mt-1 mb-4 text-sm text-muted-foreground">هر پرداخت را می‌توانید عوض کنید یا حذف کنید.</p>
+        <p className="mt-1 mb-4 text-sm text-muted-foreground">
+          هر پرداخت را می‌توانید عوض کنید یا حذف کنید — یا روی آن کلیک راست کنید.
+        </p>
         {payments.length === 0 ? (
           <p className="text-sm text-muted-foreground">پرداختی برای این واحد ثبت نشده.</p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {payments.map((payment) => (
-              <li
-                key={payment.id}
-                className="flex flex-col gap-3 rounded-xl bg-muted/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="font-medium tabular-nums">{toman(payment.amount)}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {monthTitle(payment.year, payment.month)} · {formatFaDate(payment.date)} ·{" "}
-                    {METHOD_LABELS[payment.method]}
-                    {payment.note ? ` · ${payment.note}` : ""}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      state.openPayment({
-                        unitId: unit.id,
-                        year: payment.year,
-                        month: payment.month,
-                        paymentId: payment.id,
-                      })
-                    }
-                  >
-                    ویرایش
-                  </Button>
-                  {pending === payment.id ? (
-                    <>
-                      <Button type="button" size="sm" variant="outline" onClick={() => setPending(null)}>
-                        انصراف
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => {
-                          state.removePayment(payment.id);
-                          setPending(null);
-                        }}
-                      >
-                        حذف شود
-                      </Button>
-                    </>
-                  ) : (
-                    <Button type="button" size="sm" variant="ghost" onClick={() => setPending(payment.id)}>
-                      حذف
+            {payments.map((payment) => {
+              const actions = [
+                {
+                  label: "ویرایش",
+                  onSelect: () =>
+                    state.openPayment({
+                      unitId: unit.id,
+                      year: payment.year,
+                      month: payment.month,
+                      paymentId: payment.id,
+                    }),
+                },
+                { label: "حذف", onSelect: () => setPending(payment.id), danger: true },
+              ];
+              return (
+                <li
+                  key={payment.id}
+                  className="press flex select-none flex-col gap-3 rounded-xl bg-muted/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  onContextMenu={(event) => menu.onContextMenu(event, actions)}
+                  onPointerDown={(event) => menu.onPointerDown(event, actions)}
+                  onPointerMove={menu.onPointerMove}
+                  onPointerUp={menu.onPointerUp}
+                  onPointerCancel={menu.onPointerCancel}
+                >
+                  <div>
+                    <p className="font-medium tabular-nums">{toman(payment.amount)}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {monthTitle(payment.year, payment.month)} · {formatFaDate(payment.date)} ·{" "}
+                      {METHOD_LABELS[payment.method]}
+                      {payment.note ? ` · ${payment.note}` : ""}
+                    </p>
+                    {payment.pendingHandover ? (
+                      <p className="mt-1 text-xs text-destructive">در انتظار تحویل — هنوز به صندوق نرسیده</p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap gap-2" onPointerDown={(event) => event.stopPropagation()}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        state.openPayment({
+                          unitId: unit.id,
+                          year: payment.year,
+                          month: payment.month,
+                          paymentId: payment.id,
+                        })
+                      }
+                    >
+                      ویرایش
                     </Button>
-                  )}
-                </div>
-              </li>
-            ))}
+                    {pending === payment.id ? (
+                      <>
+                        <Button type="button" size="sm" variant="outline" onClick={() => setPending(null)}>
+                          انصراف
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            state.removePayment(payment.id);
+                            setPending(null);
+                          }}
+                        >
+                          حذف شود
+                        </Button>
+                      </>
+                    ) : (
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setPending(payment.id)}>
+                        حذف
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
 
       <section className="overflow-x-auto rounded-2xl bg-card shadow-[var(--shadow-border)]">
+        <header className="border-b border-border px-4 py-3">
+          <h2 className="font-display text-heading font-medium">سابقهٔ شارژ</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            روی هر ماه کلیک راست کنید یا انگشت را نگه دارید تا ویرایش یا پرداخت را باز کنید.
+          </p>
+        </header>
         <table className="w-full text-sm">
           <thead className="border-b border-border text-muted-foreground">
             <tr>
@@ -186,8 +219,27 @@ function UnitDetailPage() {
             {charges.map((charge) => {
               const paid = getPaid(state, unit.id, charge.year, charge.month);
               const remaining = getRemaining(state, unit.id, charge.year, charge.month);
+              const actions = [
+                {
+                  label: "ویرایش این ماه",
+                  onSelect: () => state.openLedger({ unitId: unit.id, year: charge.year, month: charge.month }),
+                },
+                {
+                  label: "ثبت پرداخت",
+                  onSelect: () => state.openPayment({ unitId: unit.id, year: charge.year, month: charge.month }),
+                },
+              ];
               return (
-                <tr key={charge.id} className="border-b border-border last:border-0">
+                <tr
+                  key={charge.id}
+                  className="press select-none border-b border-border last:border-0 hover:bg-muted/50"
+                  onContextMenu={(event) => menu.onContextMenu(event, actions)}
+                  onPointerDown={(event) => menu.onPointerDown(event, actions)}
+                  onPointerMove={menu.onPointerMove}
+                  onPointerUp={menu.onPointerUp}
+                  onPointerCancel={menu.onPointerCancel}
+                  onDoubleClick={() => state.openLedger({ unitId: unit.id, year: charge.year, month: charge.month })}
+                >
                   <td className="px-4 py-3">{monthTitle(charge.year, charge.month)}</td>
                   <td className="px-4 py-3 tabular-nums">{toman(charge.amount)}</td>
                   <td className="px-4 py-3 tabular-nums">{toman(paid)}</td>
@@ -203,6 +255,7 @@ function UnitDetailPage() {
           </tbody>
         </table>
       </section>
+      <RowMenuHost menu={menu.menu} onClose={menu.close} />
     </div>
   );
 }

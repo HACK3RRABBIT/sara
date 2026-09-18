@@ -177,6 +177,7 @@ export function buildExportModel(
       { header: "روش" },
       { header: "تاریخ (شمسی)" },
       { header: "توضیح" },
+      { header: "در انتظار تحویل" },
     ],
     rows: snapshot.payments.map((payment: Payment) => {
       const unit = snapshot.units.find((u) => u.id === payment.unitId);
@@ -189,6 +190,7 @@ export function buildExportModel(
         METHOD_LABELS[payment.method],
         t(payment.date),
         payment.note,
+        payment.pendingHandover ? "بله" : "",
       ];
     }),
   };

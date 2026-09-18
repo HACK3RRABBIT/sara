@@ -34,9 +34,39 @@ export function setTheme(theme: Theme) {
   emit();
 }
 
-export function toggleTheme() {
+/**
+ * Flip the theme. When the browser supports the View Transitions API (and
+ * the person hasn't asked for reduced motion), the switch plays as a circle
+ * expanding from `origin` — normally the toggle button itself — revealing
+ * the new theme underneath. Falls back to an instant swap everywhere else.
+ */
+export function toggleTheme(origin?: { x: number; y: number }) {
   const next: Theme = document.documentElement.classList.contains("dark") ? "light" : "dark";
-  setTheme(next);
+  const reduceMotion =
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (reduceMotion || typeof document.startViewTransition !== "function") {
+    setTheme(next);
+    return;
+  }
+
+  const root = document.documentElement;
+  const { x, y } = origin ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  root.style.setProperty("--theme-toggle-x", `${x}px`);
+  root.style.setProperty("--theme-toggle-y", `${y}px`);
+  const radius = Math.hypot(
+    Math.max(x, window.innerWidth - x),
+    Math.max(y, window.innerHeight - y),
+  );
+  root.style.setProperty("--theme-toggle-radius", `${radius}px`);
+
+  const transition = document.startViewTransition(() => setTheme(next));
+  // The browser rejects `ready` (and then `finished`) if the document goes
+  // hidden mid-transition (e.g. a quick tab switch) — expected, not a bug;
+  // the theme still applies via the callback above, only the animation is
+  // skipped. Swallow both so neither surfaces as an unhandled rejection.
+  transition.ready.catch(() => {});
+  transition.finished.catch(() => {});
 }
 
 export function getTheme(): Theme {

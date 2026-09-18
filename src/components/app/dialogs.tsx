@@ -54,6 +54,7 @@ function PaymentDialog() {
   const [method, setMethod] = useState<PaymentMethod>("card");
   const [date, setDate] = useState(jalaliToIso(today.year, today.month, today.day));
   const [note, setNote] = useState("");
+  const [pendingHandover, setPendingHandover] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -80,12 +81,14 @@ function PaymentDialog() {
       setMethod(current.method);
       setDate(current.date);
       setNote(current.note);
+      setPendingHandover(Boolean(current.pendingHandover));
     } else {
       const rest = nextUnit ? getRemaining(useBuildingStore.getState(), nextUnit, yy, mm) : 0;
       setAmount(rest ? String(rest) : "");
       setMethod("card");
       setDate(jalaliToIso(today.year, today.month, today.day));
       setNote("");
+      setPendingHandover(false);
     }
     setError(null);
     setConfirmDelete(false);
@@ -114,6 +117,7 @@ function PaymentDialog() {
       method,
       date,
       note,
+      pendingHandover,
     };
     if (editing) updatePayment(editing.id, payload);
     else recordPayment(payload);
@@ -181,6 +185,18 @@ function PaymentDialog() {
           <Label htmlFor="pay-note">توضیح</Label>
           <Input id="pay-note" value={note} onChange={(event) => setNote(event.target.value)} />
         </div>
+        <label className="flex items-start gap-2.5 rounded-xl bg-muted/60 px-3 py-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 accent-primary"
+            checked={pendingHandover}
+            onChange={(event) => setPendingHandover(event.target.checked)}
+          />
+          <span>
+            ساکن پرداخت کرده، اما پول هنوز به صندوق نرسیده (مثلاً نزد مدیر قبلی مانده است). این واحد تسویه‌شده
+            ثبت می‌شود ولی در موجودی صندوق حساب نمی‌شود تا وصول شود.
+          </span>
+        </label>
         {error ? (
           <p className="text-sm text-destructive" role="alert">
             {error}
@@ -235,6 +251,7 @@ function LedgerDialog() {
   const [editId, setEditId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
+  const [chargeDeletePending, setChargeDeletePending] = useState(false);
 
   useEffect(() => {
     if (!open || !unitId) return;
@@ -249,6 +266,7 @@ function LedgerDialog() {
     setEditId(null);
     setError(null);
     setPending(null);
+    setChargeDeletePending(false);
   }, [open, unitId, y, m]);
 
   if (!open || !unit) return null;
@@ -336,6 +354,33 @@ function LedgerDialog() {
               ذخیره شارژ
             </Button>
           </div>
+          {charge ? (
+            chargeDeletePending ? (
+              <div className="flex gap-2">
+                <p className="flex-1 self-center text-xs text-muted-foreground">
+                  شارژ این ماه برای این واحد کاملاً حذف می‌شود (نه صفر) — یعنی «صادر نشده».
+                </p>
+                <Button type="button" size="sm" variant="outline" onClick={() => setChargeDeletePending(false)}>
+                  انصراف
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    store.removeCharge(charge.id);
+                    setChargeAmountValue("");
+                    setChargeDeletePending(false);
+                  }}
+                >
+                  حذف شارژ شود
+                </Button>
+              </div>
+            ) : (
+              <Button type="button" size="sm" variant="ghost" onClick={() => setChargeDeletePending(true)}>
+                حذف کامل شارژ این ماه
+              </Button>
+            )
+          ) : null}
         </div>
 
         <div>
@@ -622,10 +667,13 @@ function SettingsDialog() {
     // unparsable input falls back — no `|| old` that would block saving zero.
     const base = parseAmount(String(form.baseCharge));
     const per = parseAmount(String(form.perPerson));
+    const receivable = parseAmount(String(form.previousManagerReceivable));
     updateSettings({
       ...form,
       baseCharge: Number.isNaN(base) || base < 0 ? settings.baseCharge : base,
       perPerson: Number.isNaN(per) || per < 0 ? settings.perPerson : per,
+      previousManagerReceivable:
+        Number.isNaN(receivable) || receivable < 0 ? settings.previousManagerReceivable : receivable,
     });
   }
 
@@ -715,6 +763,23 @@ function SettingsDialog() {
         ) : (
           <p className="text-xs text-destructive">شارژ پایه باید بیشتر از صفر باشد.</p>
         )}
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="s-receivable">مطالبات از مدیر قبلی (تومان)</Label>
+          <Input
+            id="s-receivable"
+            dir="ltr"
+            inputMode="numeric"
+            value={form.previousManagerReceivable === 0 ? "" : String(form.previousManagerReceivable)}
+            onChange={(event) =>
+              setForm({ ...form, previousManagerReceivable: parseAmount(event.target.value) || 0 })
+            }
+            placeholder="۰"
+          />
+          <p className="text-xs text-muted-foreground">
+            پولی که ساکنان پرداخت کرده‌اند ولی هنوز از مدیر قبلی تحویل نگرفته‌اید. در داشبورد جدا از موجودی
+            صندوق نشان داده می‌شود؛ هر وقت بخشی رسید، همین‌جا کم‌ش کنید.
+          </p>
+        </div>
         <Button type="submit" size="lg">
           ذخیره تنظیمات
         </Button>

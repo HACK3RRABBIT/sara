@@ -67,7 +67,7 @@ export function ContextMenu({
     <div
       ref={ref}
       role="menu"
-      className="fixed z-[60] min-w-48 rounded-xl bg-card py-1 text-card-foreground shadow-[var(--shadow-lift)] ring-1 ring-border"
+      className="animate-in fade-in-0 zoom-in-95 fixed z-[60] min-w-48 origin-top rounded-xl bg-card py-1 text-card-foreground shadow-[var(--shadow-lift)] ring-1 ring-border duration-150"
       style={{ left: x, top: y }}
     >
       {actions.map((action) => (
@@ -76,7 +76,7 @@ export function ContextMenu({
           type="button"
           role="menuitem"
           className={cn(
-            "flex min-h-11 w-full items-center px-4 text-start text-sm hover:bg-muted",
+            "press flex min-h-11 w-full items-center px-4 text-start text-sm hover:bg-muted",
             action.danger && "text-destructive",
           )}
           onClick={() => {

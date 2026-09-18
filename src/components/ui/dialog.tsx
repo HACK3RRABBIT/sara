@@ -55,7 +55,13 @@ export function Dialog({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-board/50" />
+        <DialogPrimitive.Overlay
+          className={cn(
+            "fixed inset-0 z-50 bg-board/50",
+            "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:duration-200",
+            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-150",
+          )}
+        />
         <DialogPrimitive.Content
           ref={contentRef}
           className={cn(
@@ -64,6 +70,13 @@ export function Dialog({
             "ps-[max(1.5rem,env(safe-area-inset-left))] pe-[max(1.5rem,env(safe-area-inset-right))]",
             "pb-[max(1.5rem,env(safe-area-inset-bottom))]",
             "sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-md sm:max-h-[calc(100dvh-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:px-0 sm:pb-0",
+            // Bottom sheet on mobile (slides up), centered pop on desktop
+            // (fades + scales in place) — each cancels the other's transform
+            // at its own breakpoint so they never both apply at once.
+            "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-6 data-[state=open]:duration-250",
+            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-6 data-[state=closed]:duration-150",
+            "sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=open]:zoom-in-95",
+            "sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=closed]:zoom-out-95",
             className,
           )}
         >

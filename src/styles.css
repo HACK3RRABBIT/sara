@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -23,6 +24,8 @@
   --color-input: #d5cec0;
   --color-destructive: #8f2d22;
   --color-destructive-foreground: #faf8f3;
+  --color-success: #3f6b3a;
+  --color-success-foreground: #f3f0e8;
   --color-board: #161513;
   --color-board-foreground: #f3f0e8;
 
@@ -52,6 +55,8 @@
   --motion-fast: 250ms;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Overshoots past 1 then settles — a press that springs back on release. */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .dark {
@@ -72,6 +77,8 @@
   --color-input: #3a362e;
   --color-destructive: #e07060;
   --color-destructive-foreground: #1a100e;
+  --color-success: #7fae6e;
+  --color-success-foreground: #10160d;
   --color-board: #0c0b0a;
   --color-board-foreground: #f3f0e8;
   --shadow-border:
@@ -122,6 +129,38 @@
   }
 }
 
+@layer utilities {
+  /* One shared tactile response for everything clickable — a quick dip on
+     press that springs back past its resting size on release. Applied to
+     buttons and every clickable card/row so the whole app answers a click
+     the same way. */
+  .press {
+    transition: transform 260ms var(--ease-spring);
+  }
+  .press:active {
+    transform: scale(0.97);
+    transition-duration: 90ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  /* Active-tab underline for the primary nav — grows in from the center on
+     arrival, shrinks back out on the way out. */
+  .nav-underline::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: -5px;
+    height: 2px;
+    border-radius: 999px;
+    background-color: currentColor;
+    transform: scaleX(0);
+    transition: transform 220ms var(--ease-smooth-out);
+  }
+  .nav-underline[data-active="true"]::after {
+    transform: scaleX(1);
+  }
+}
+
 @media print {
   header,
   .print\:hidden {
@@ -139,11 +178,34 @@
   }
 }
 
+/* Light/dark toggle: the new theme reveals through an expanding circle
+   centered on wherever the toggle button was, covering the old theme
+   underneath. `theme.ts` sets the origin + reach as custom properties before
+   starting the transition. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  clip-path: circle(0 at var(--theme-toggle-x, 50%) var(--theme-toggle-y, 50%));
+  animation: theme-reveal 550ms var(--ease-smooth-out) forwards;
+}
+@keyframes theme-reveal {
+  to {
+    clip-path: circle(var(--theme-toggle-radius, 150%) at var(--theme-toggle-x, 50%) var(--theme-toggle-y, 50%));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
   }
 }

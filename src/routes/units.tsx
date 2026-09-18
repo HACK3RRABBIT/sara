@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import { RowMenuHost, useRowMenu } from "@/components/app/context-menu";
 import { StatusBadge } from "@/components/app/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ function UnitsPage() {
   const state = useBuildingStore();
   const today = jalaliToday();
   const [query, setQuery] = useState("");
+  const menu = useRowMenu();
   const units = useMemo(() => {
     const q = query.trim();
     return sortUnits(state.units).filter(
@@ -32,6 +34,9 @@ function UnitsPage() {
           <h1 className="font-display text-title font-medium">واحدها</h1>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">
             ده واحد بیشتر نیست، شماره ۱ تا ۱۰. {faNum(state.units.length)} واحد ثبت شده — روی پایگاه داده ذخیره می‌شود.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            روی هر واحد کلیک راست کنید یا انگشت را نگه دارید تا ویرایش یا پرداخت را زودتر باز کنید.
           </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
@@ -63,12 +68,28 @@ function UnitsPage() {
               state.settings.perPerson,
               unit.occupants,
             );
+            const actions = [
+              { label: "ویرایش واحد", onSelect: () => state.openUnitEdit(unit.id) },
+              {
+                label: "ثبت پرداخت",
+                onSelect: () => state.openPayment({ unitId: unit.id, year: today.year, month: today.month }),
+              },
+              // Deleting a unit also wipes its whole charge/payment history —
+              // opens the unit dialog's own confirm-before-delete flow rather
+              // than firing removeUnit directly from the menu.
+              { label: "حذف واحد", onSelect: () => state.openUnitEdit(unit.id), danger: true },
+            ];
             return (
               <li key={unit.id}>
                 <Link
                   to="/units/$unitId"
                   params={{ unitId: unit.id }}
-                  className="flex min-h-28 flex-col gap-2 rounded-2xl bg-card p-5 no-underline shadow-[var(--shadow-border)] hover:shadow-[var(--shadow-border-hover)]"
+                  className="press flex min-h-28 flex-col gap-2 rounded-2xl bg-card p-5 no-underline shadow-[var(--shadow-border)] hover:shadow-[var(--shadow-border-hover)]"
+                  onContextMenu={(event) => menu.onContextMenu(event, actions)}
+                  onPointerDown={(event) => menu.onPointerDown(event, actions)}
+                  onPointerMove={menu.onPointerMove}
+                  onPointerUp={menu.onPointerUp}
+                  onPointerCancel={menu.onPointerCancel}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -88,6 +109,7 @@ function UnitsPage() {
           })}
         </ul>
       )}
+      <RowMenuHost menu={menu.menu} onClose={menu.close} />
     </div>
   );
 }
