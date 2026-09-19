@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { RowMenuHost, useRowMenu } from "@/components/app/context-menu";
 import { StatusBadge } from "@/components/app/status-badge";
 import { UnitForm } from "@/components/app/unit-form";
-import { chargeAmount, faNum, formatFaDate, jalaliToday, monthTitle, toman } from "@/lib/format";
+import { chargeAmount, faNum, formatFaDate, jalaliToday, monthTitle, money, rial } from "@/lib/format";
 import {
   METHOD_LABELS,
   getPaid,
@@ -77,12 +77,12 @@ function UnitDetailPage() {
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-border)]">
           <p className="text-sm text-muted-foreground">شارژ مصوب ماه بعد</p>
-          <p className="mt-2 font-display text-2xl font-medium">{toman(amount)}</p>
+          <p className="mt-2 font-display text-2xl font-medium">{money(amount)}</p>
         </div>
         <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-border)]">
           <p className="text-sm text-muted-foreground">مانده این ماه</p>
           <p className="mt-2 font-display text-2xl font-medium">
-            {toman(getRemaining(state, unit.id, today.year, today.month))}
+            {money(getRemaining(state, unit.id, today.year, today.month))}
           </p>
         </div>
         <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-border)]">
@@ -143,7 +143,7 @@ function UnitDetailPage() {
                   onPointerCancel={menu.onPointerCancel}
                 >
                   <div>
-                    <p className="font-medium tabular-nums">{toman(payment.amount)}</p>
+                    <p className="font-medium tabular-nums">{money(payment.amount)}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {monthTitle(payment.year, payment.month)} · {formatFaDate(payment.date)} ·{" "}
                       {METHOD_LABELS[payment.method]}
@@ -241,9 +241,9 @@ function UnitDetailPage() {
                   onDoubleClick={() => state.openLedger({ unitId: unit.id, year: charge.year, month: charge.month })}
                 >
                   <td className="px-4 py-3">{monthTitle(charge.year, charge.month)}</td>
-                  <td className="px-4 py-3 tabular-nums">{toman(charge.amount)}</td>
-                  <td className="px-4 py-3 tabular-nums">{toman(paid)}</td>
-                  <td className="px-4 py-3 tabular-nums">{toman(remaining)}</td>
+                  <td className="px-4 py-3 tabular-nums">{rial(charge.amount)}</td>
+                  <td className="px-4 py-3 tabular-nums">{rial(paid)}</td>
+                  <td className="px-4 py-3 tabular-nums">{rial(remaining)}</td>
                   <td className="px-4 py-3">
                     <StatusBadge
                       status={getStatus(state, unit.id, charge.year, charge.month, today)}

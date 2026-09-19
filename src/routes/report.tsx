@@ -11,7 +11,8 @@ import {
   monthTitle,
   payWindowEnd,
   shiftMonth,
-  toman,
+  money,
+  rial,
 } from "@/lib/format";
 import {
   EXPENSE_LABELS,
@@ -101,18 +102,18 @@ function ReportPage() {
             مدیر: {state.settings.manager} · کارت {state.settings.cardNumber} · بانک {state.settings.bank}
           </p>
           <p className="mt-3 text-sm">
-            شارژ مصوب: پایه {toman(state.settings.baseCharge)} + {toman(state.settings.perPerson)} هر نفر.
+            شارژ مصوب: پایه {money(state.settings.baseCharge)} + {money(state.settings.perPerson)} هر نفر.
             مهلت واریز از {faNum(PAY_FROM)} تا {faNum(windowEnd)} هر ماه.
           </p>
         </header>
 
         <section className="mt-6 grid gap-3 sm:grid-cols-4">
-          <Cell label="شارژ صادرشده" value={toman(totals.billed)} />
-          <Cell label="وصول‌شده" value={toman(totals.collected)} />
-          <Cell label="مانده بدهی" value={toman(totals.outstanding)} />
-          <Cell label="هزینه ماه" value={toman(totals.spent)} />
+          <Cell label="شارژ صادرشده" value={money(totals.billed)} />
+          <Cell label="وصول‌شده" value={money(totals.collected)} />
+          <Cell label="مانده بدهی" value={money(totals.outstanding)} />
+          <Cell label="هزینه ماه" value={money(totals.spent)} />
         </section>
-        <p className="mt-4 text-sm">موجودی صندوق تا امروز: {toman(fund)}</p>
+        <p className="mt-4 text-sm">موجودی صندوق تا امروز: {money(fund)}</p>
 
         <h3 className="mt-8 font-display text-heading font-medium">وضعیت واحدها</h3>
         <p className="mt-1 text-xs text-muted-foreground print:hidden">
@@ -159,10 +160,10 @@ function ReportPage() {
                     <td className="py-2">{unit.number}</td>
                     <td className="py-2">{unit.resident}</td>
                     <td className="py-2 tabular-nums">{faNum(unit.occupants)}</td>
-                    <td className="py-2 tabular-nums">{charge ? toman(charge.amount) : "—"}</td>
-                    <td className="py-2 tabular-nums">{toman(getPaid(state, unit.id, year, month))}</td>
+                    <td className="py-2 tabular-nums">{charge ? rial(charge.amount) : "—"}</td>
+                    <td className="py-2 tabular-nums">{rial(getPaid(state, unit.id, year, month))}</td>
                     <td className="py-2 tabular-nums">
-                      {toman(getRemaining(state, unit.id, year, month))}
+                      {rial(getRemaining(state, unit.id, year, month))}
                     </td>
                   </tr>
                 );
@@ -181,7 +182,7 @@ function ReportPage() {
                 <span>
                   {item.title} · {EXPENSE_LABELS[item.category]} · {formatFaDate(item.date)}
                 </span>
-                <span className="tabular-nums">{toman(item.amount)}</span>
+                <span className="tabular-nums">{money(item.amount)}</span>
               </li>
             ))}
           </ul>

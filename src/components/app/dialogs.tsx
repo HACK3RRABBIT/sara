@@ -28,7 +28,7 @@ import {
   jalaliToIso,
   monthTitle,
   parseAmount,
-  toman,
+  money,
   chargeAmount,
 } from "@/lib/format";
 
@@ -173,7 +173,7 @@ function PaymentDialog() {
             placeholder="مثلاً ۱۵۰۰۰۰۰"
           />
           {remaining > 0 ? (
-            <p className="text-xs text-muted-foreground">مانده این ماه: {toman(remaining)}</p>
+            <p className="text-xs text-muted-foreground">مانده این ماه: {money(remaining)}</p>
           ) : (
             <p className="text-xs text-muted-foreground">برای این ماه مانده‌ای نیست.</p>
           )}
@@ -350,7 +350,7 @@ function LedgerDialog() {
       open={open}
       onOpenChange={(next) => !next && close()}
       title={`واحد ${unit.number} · ${monthTitle(y, m)}`}
-      description={`${unit.resident || "بدون ساکن"} — پرداخت ${toman(paid)} از ${charge ? toman(charge.amount) : "—"} · مانده ${toman(remain)}`}
+      description={`${unit.resident || "بدون ساکن"} — پرداخت ${money(paid)} از ${charge ? money(charge.amount) : "—"} · مانده ${money(remain)}`}
     >
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
@@ -407,7 +407,7 @@ function LedgerDialog() {
                   className="flex flex-col gap-2 rounded-xl bg-muted/60 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <p className="font-medium tabular-nums">{toman(payment.amount)}</p>
+                    <p className="font-medium tabular-nums">{money(payment.amount)}</p>
                     <p className="text-xs text-muted-foreground">
                       {formatFaDate(payment.date)} · {METHOD_LABELS[payment.method]}
                       {payment.note ? ` · ${payment.note}` : ""}
@@ -774,7 +774,7 @@ function SettingsDialog() {
         </div>
         {form.baseCharge > 0 ? (
           <p className="text-xs text-muted-foreground">
-            مثال: واحد سه‌نفره {toman(chargeAmount(form.baseCharge, form.perPerson, 3))} می‌شود.
+            مثال: واحد سه‌نفره {money(chargeAmount(form.baseCharge, form.perPerson, 3))} می‌شود.
           </p>
         ) : (
           <p className="text-xs text-destructive">شارژ پایه باید بیشتر از صفر باشد.</p>
@@ -902,7 +902,7 @@ function HandoverReceiptsSection() {
               className="flex items-center justify-between gap-3 rounded-xl bg-muted/60 px-3 py-2"
             >
               <div>
-                <p className="text-sm font-medium tabular-nums">{toman(receipt.amount)}</p>
+                <p className="text-sm font-medium tabular-nums">{money(receipt.amount)}</p>
                 <p className="text-xs text-muted-foreground">
                   {formatFaDate(receipt.date)}
                   {receipt.note ? ` · ${receipt.note}` : ""}
@@ -1008,7 +1008,7 @@ function ManagerRepaymentSection() {
               className="flex items-center justify-between gap-3 rounded-xl bg-card px-3 py-2"
             >
               <div>
-                <p className="text-sm font-medium tabular-nums">{toman(repayment.amount)}</p>
+                <p className="text-sm font-medium tabular-nums">{money(repayment.amount)}</p>
                 <p className="text-xs text-muted-foreground">
                   {formatFaDate(repayment.date)}
                   {repayment.note ? ` · ${repayment.note}` : ""}

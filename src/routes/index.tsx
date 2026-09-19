@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RowMenuHost, useRowMenu } from "@/components/app/context-menu";
 import { TodayStamp } from "@/components/app/today-stamp";
-import { faNum, jalaliToday, monthTitle, toman } from "@/lib/format";
+import { faNum, jalaliToday, monthTitle, money, rial } from "@/lib/format";
 import { MONTHS_FA } from "@/lib/format";
 import {
   STATUS_LABELS,
@@ -95,7 +95,7 @@ function Dashboard() {
           <p className="mt-1 text-sm">
             مبلغی که خودم از صندوق برداشته‌ام و هنوز برنگردانده‌ام — جدا از مطالبات ساکنان و مدیر قبلی.
           </p>
-          <p className="mt-2 font-display text-xl font-medium tabular-nums">{toman(managerDebt)}</p>
+          <p className="mt-2 font-display text-xl font-medium tabular-nums">{money(managerDebt)}</p>
         </section>
       ) : null}
       {debtors.length > 0 ? (
@@ -121,7 +121,7 @@ function Dashboard() {
                   <span className="text-sm">
                     واحد {unit.number} · {unit.resident || "بدون ساکن"}
                   </span>
-                  <span className="tabular-nums text-sm font-medium">{toman(amount)}</span>
+                  <span className="tabular-nums text-sm font-medium">{money(amount)}</span>
                 </Link>
               </li>
             ))}
@@ -144,8 +144,8 @@ function Dashboard() {
             ) : null}
           </div>
           <dl className="grid grid-cols-3 gap-6 sm:w-80">
-            <Stat label="پرداخت این ماه" value={faNum(totals.collected)} />
-            <Stat label="بدهی این ماه" value={faNum(totals.outstanding)} />
+            <Stat label="پرداخت این ماه" value={rial(totals.collected)} />
+            <Stat label="بدهی این ماه" value={rial(totals.outstanding)} />
             <Stat label="وصول" value={`${faNum(progress)}٪`} />
           </dl>
         </header>
@@ -156,7 +156,7 @@ function Dashboard() {
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className="mt-2 text-xs text-board-foreground/45">مبالغ به تومان — نوار پر یعنی تسویه</p>
+        <p className="mt-2 text-xs text-board-foreground/45">مبالغ به ریال — نوار پر یعنی تسویه</p>
 
         <div className="mt-5 hidden grid-cols-12 gap-3 px-3 text-xs text-board-foreground/45 sm:grid">
           <p className="col-span-1">واحد</p>
@@ -210,7 +210,7 @@ function Dashboard() {
                   </span>
                   <span className="col-span-6 text-sm tabular-nums sm:col-span-2 sm:text-end">
                     <span className="sm:hidden text-board-foreground/45">پرداخت </span>
-                    {faNum(row.paid)}
+                    {rial(row.paid)}
                   </span>
                   <span
                     className={cn(
@@ -225,7 +225,7 @@ function Dashboard() {
                     )}
                   >
                     <span className="sm:hidden text-board-foreground/45">بدهی </span>
-                    {row.status === "none" ? STATUS_LABELS.none : faNum(row.remain)}
+                    {row.status === "none" ? STATUS_LABELS.none : rial(row.remain)}
                   </span>
                 </Link>
               </li>
@@ -235,13 +235,13 @@ function Dashboard() {
       </section>
 
       <section className={cn("grid gap-3", handover > 0 ? "sm:grid-cols-4" : "sm:grid-cols-3")}>
-        <TreasuryStat label="موجودی صندوق" value={toman(fund)} />
-        <TreasuryStat label="موجودی در صورت وصول کامل" value={toman(expected)} />
-        <TreasuryStat label="کسری (مطالبات وصول‌نشده)" value={toman(debt)} tone={debt > 0 ? "debt" : undefined} />
+        <TreasuryStat label="موجودی صندوق" value={money(fund)} />
+        <TreasuryStat label="موجودی در صورت وصول کامل" value={money(expected)} />
+        <TreasuryStat label="کسری (مطالبات وصول‌نشده)" value={money(debt)} tone={debt > 0 ? "debt" : undefined} />
         {handover > 0 ? (
           <TreasuryStat
             label="در انتظار تحویل از مدیر قبلی"
-            value={toman(handover)}
+            value={money(handover)}
             tone="debt"
           />
         ) : null}
@@ -278,15 +278,15 @@ function Dashboard() {
                       <span className="ms-2 text-xs text-muted-foreground">(این ماه)</span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3 tabular-nums">{row.billed ? toman(row.billed) : "—"}</td>
-                  <td className="px-4 py-3 tabular-nums">{row.collected ? toman(row.collected) : "—"}</td>
+                  <td className="px-4 py-3 tabular-nums">{row.billed ? rial(row.billed) : "—"}</td>
+                  <td className="px-4 py-3 tabular-nums">{row.collected ? rial(row.collected) : "—"}</td>
                   <td
                     className={cn(
                       "px-4 py-3 tabular-nums",
                       settled ? "text-success" : owing ? "text-destructive" : "text-muted-foreground",
                     )}
                   >
-                    {owing ? toman(row.outstanding) : settled ? "تسویه" : "—"}
+                    {owing ? rial(row.outstanding) : settled ? "تسویه" : "—"}
                   </td>
                 </tr>
               );

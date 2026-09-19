@@ -5,7 +5,7 @@ import { RowMenuHost, useRowMenu } from "@/components/app/context-menu";
 import { StatusBadge } from "@/components/app/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { chargeAmount, faNum, jalaliToday, toman } from "@/lib/format";
+import { chargeAmount, faNum, jalaliToday, money } from "@/lib/format";
 import { getRemaining, getStatus, MAX_UNITS, sortUnits, useBuildingStore } from "@/lib/store";
 
 export const Route = createFileRoute("/units")({ component: UnitsPage });
@@ -101,7 +101,7 @@ function UnitsPage() {
                     <StatusBadge status={getStatus(state, unit.id, today.year, today.month, today)} />
                   </div>
                   <p className="text-sm tabular-nums text-muted-foreground">
-                    شارژ {toman(amount)} · مانده این ماه {toman(remaining)}
+                    شارژ {money(amount)} · مانده این ماه {money(remaining)}
                   </p>
                 </Link>
               </li>

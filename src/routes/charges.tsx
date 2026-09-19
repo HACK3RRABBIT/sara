@@ -13,7 +13,8 @@ import {
   monthTitle,
   payWindowEnd,
   shiftMonth,
-  toman,
+  money,
+  rial,
 } from "@/lib/format";
 import {
   METHOD_LABELS,
@@ -94,7 +95,7 @@ function ChargesPage() {
         <div>
           <h1 className="font-display text-title font-medium">شارژ ماهانه</h1>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            پایه {toman(state.settings.baseCharge)} + {toman(state.settings.perPerson)} هر نفر. مهلت پرداخت از{" "}
+            پایه {money(state.settings.baseCharge)} + {money(state.settings.perPerson)} هر نفر. مهلت پرداخت از{" "}
             {faNum(PAY_FROM)} تا {faNum(windowEnd)} {monthTitle(year, month)}.
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
@@ -116,9 +117,9 @@ function ChargesPage() {
       {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Mini label="صادرشده" value={toman(totals.billed)} />
-        <Mini label="وصول‌شده" value={toman(totals.collected)} />
-        <Mini label="مانده" value={toman(totals.outstanding)} />
+        <Mini label="صادرشده" value={money(totals.billed)} />
+        <Mini label="وصول‌شده" value={money(totals.collected)} />
+        <Mini label="مانده" value={money(totals.outstanding)} />
       </div>
 
       <div className="overflow-x-auto rounded-2xl bg-card shadow-[var(--shadow-border)]">
@@ -165,9 +166,9 @@ function ChargesPage() {
                   <td className="px-4 py-3 font-medium">{unit.number}</td>
                   <td className="px-4 py-3">{unit.resident}</td>
                   <td className="px-4 py-3 tabular-nums">{faNum(unit.occupants)}</td>
-                  <td className="px-4 py-3 tabular-nums">{charge ? toman(amount) : "—"}</td>
+                  <td className="px-4 py-3 tabular-nums">{charge ? rial(amount) : "—"}</td>
                   <td className="px-4 py-3">
-                    <p className="tabular-nums">{toman(paid)}</p>
+                    <p className="tabular-nums">{rial(paid)}</p>
                     {pays.length === 0 ? (
                       <p className="mt-1 text-xs text-muted-foreground">بدون پرداخت</p>
                     ) : (
@@ -181,7 +182,7 @@ function ChargesPage() {
                             state.openLedger({ unitId: unit.id, year, month });
                           }}
                         >
-                          {formatFaDate(payment.date)} · {toman(payment.amount)} · {METHOD_LABELS[payment.method]}
+                          {formatFaDate(payment.date)} · {rial(payment.amount)} · {METHOD_LABELS[payment.method]}
                           {payment.pendingHandover ? (
                             <span className="text-destructive"> · در انتظار تحویل</span>
                           ) : null}
@@ -189,7 +190,7 @@ function ChargesPage() {
                       ))
                     )}
                   </td>
-                  <td className="px-4 py-3 tabular-nums">{toman(remaining)}</td>
+                  <td className="px-4 py-3 tabular-nums">{rial(remaining)}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={status} />
                   </td>

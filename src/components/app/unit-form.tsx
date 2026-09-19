@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { chargeAmount, faNum, parseAmount, toman } from "@/lib/format";
+import { chargeAmount, faNum, parseAmount, money } from "@/lib/format";
 import type { Settings, Unit } from "@/lib/store";
 
 export function UnitForm({
@@ -146,8 +146,8 @@ export function UnitForm({
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        شارژ ماه بعد: {toman(nextCharge)} — پایه {toman(settings.baseCharge)} + {faNum(people)} نفر ×{" "}
-        {toman(settings.perPerson)}
+        شارژ ماه بعد: {money(nextCharge)} — پایه {money(settings.baseCharge)} + {faNum(people)} نفر ×{" "}
+        {money(settings.perPerson)}
       </p>
       <label className="flex min-h-11 items-center gap-2 text-sm">
         <input

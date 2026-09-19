@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RowMenuHost, useRowMenu } from "@/components/app/context-menu";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/select";
-import { formatFaDate, jalaliToday, toman } from "@/lib/format";
+import { formatFaDate, jalaliToday, money } from "@/lib/format";
 import { EXPENSE_LABELS, useBuildingStore, type ExpenseCategory } from "@/lib/store";
 
 export const Route = createFileRoute("/expenses")({ component: ExpensesPage });
@@ -36,7 +36,7 @@ function ExpensesPage() {
         <div>
           <h1 className="font-display text-title font-medium">هزینه‌های ساختمان</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            این ماه {toman(monthSpend)} خرج شده. مجموع فهرست فیلترشده {toman(total)}.
+            این ماه {money(monthSpend)} خرج شده. مجموع فهرست فیلترشده {money(total)}.
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             روی هر هزینه کلیک راست کنید یا انگشت را نگه دارید تا حذف کنید.
@@ -90,7 +90,7 @@ function ExpensesPage() {
                 {item.note ? <p className="mt-1 text-sm text-muted-foreground">{item.note}</p> : null}
               </div>
               <div className="flex items-center gap-3" onPointerDown={(event) => event.stopPropagation()}>
-                <p className="font-display text-xl font-medium">{toman(item.amount)}</p>
+                <p className="font-display text-xl font-medium">{money(item.amount)}</p>
                 {pending === item.id ? (
                   <div className="flex gap-2">
                     <Button type="button" size="sm" variant="outline" onClick={() => setPending(null)}>
