@@ -28,6 +28,9 @@ const snapshot: BuildingSnapshot = {
   handoverReceipts: [
     { id: "h1", amount: 500_000, date: "2025-06-22T00:00:00.000Z", note: "از مدیر قبلی" },
   ],
+  managerRepayments: [
+    { id: "m1", amount: 300_000, date: "2025-06-23T00:00:00.000Z", note: "بازپرداخت بخشی" },
+  ],
   settings: {
     buildingName: "سرا",
     address: "",
@@ -37,6 +40,7 @@ const snapshot: BuildingSnapshot = {
     baseCharge: 1_500_000,
     perPerson: 100_000,
     previousManagerReceivable: 0,
+    managerDebtToFund: 0,
   },
 };
 

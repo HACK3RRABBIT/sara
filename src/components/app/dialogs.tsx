@@ -679,12 +679,14 @@ function SettingsDialog() {
     const base = parseAmount(String(form.baseCharge));
     const per = parseAmount(String(form.perPerson));
     const receivable = parseAmount(String(form.previousManagerReceivable));
+    const owed = parseAmount(String(form.managerDebtToFund));
     updateSettings({
       ...form,
       baseCharge: Number.isNaN(base) || base < 0 ? settings.baseCharge : base,
       perPerson: Number.isNaN(per) || per < 0 ? settings.perPerson : per,
       previousManagerReceivable:
         Number.isNaN(receivable) || receivable < 0 ? settings.previousManagerReceivable : receivable,
+      managerDebtToFund: Number.isNaN(owed) || owed < 0 ? settings.managerDebtToFund : owed,
     });
   }
 
@@ -792,6 +794,25 @@ function SettingsDialog() {
             «دریافت از مدیر قبلی» را ثبت کنید تا هم از این عدد کم شود، هم به موجودی واقعی صندوق اضافه شود.
           </p>
         </div>
+        <div className="flex flex-col gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3">
+          <Label htmlFor="s-owed">بدهی من به صندوق (تومان)</Label>
+          <Input
+            id="s-owed"
+            dir="ltr"
+            inputMode="numeric"
+            value={form.managerDebtToFund === 0 ? "" : String(form.managerDebtToFund)}
+            onChange={(event) =>
+              setForm({ ...form, managerDebtToFund: parseAmount(event.target.value) || 0 })
+            }
+            placeholder="۰"
+          />
+          <p className="text-xs text-muted-foreground">
+            مبلغی که خودتان از صندوق برداشته‌اید و هنوز برنگردانده‌اید — جدا از مطالبات ساکنان و مدیر قبلی، و
+            جدا از موجودی صندوق کم می‌شود چون این پول واقعاً از صندوق خارج شده. وقتی بخشی را برمی‌گردانید، آن
+            را دستی کم نکنید — پایین همین صفحه «بازپرداخت به صندوق» را ثبت کنید تا هم از این عدد کم شود، هم به
+            موجودی واقعی صندوق برگردد.
+          </p>
+        </div>
         <Button type="submit" size="lg">
           ذخیره تنظیمات
         </Button>
@@ -799,6 +820,7 @@ function SettingsDialog() {
       {/* Outside the settings <form>: nested forms are invalid HTML and the
           browser would strip the inner ones, breaking both buttons. */}
       <HandoverReceiptsSection />
+      <ManagerRepaymentSection />
       <AdminAccountSection />
       <BackupSection buildingName={settings.buildingName} onCleared={close} />
     </Dialog>
@@ -899,6 +921,112 @@ function HandoverReceiptsSection() {
                 </div>
               ) : (
                 <Button type="button" size="sm" variant="ghost" onClick={() => setPending(receipt.id)}>
+                  حذف
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function ManagerRepaymentSection() {
+  const repayments = useBuildingStore((s) => s.managerRepayments);
+  const recordManagerRepayment = useBuildingStore((s) => s.recordManagerRepayment);
+  const removeManagerRepayment = useBuildingStore((s) => s.removeManagerRepayment);
+  const today = jalaliToday();
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(jalaliToIso(today.year, today.month, today.day));
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
+
+  function submit() {
+    const value = parseAmount(amount);
+    if (!Number.isFinite(value) || value <= 0) {
+      setError("مبلغ معتبر وارد کنید.");
+      return;
+    }
+    recordManagerRepayment({ amount: value, date, note: note.trim() });
+    setAmount("");
+    setNote("");
+    setDate(jalaliToIso(today.year, today.month, today.day));
+    setError(null);
+  }
+
+  const sorted = [...repayments].sort((a, b) => b.date.localeCompare(a.date));
+
+  return (
+    <div className="mt-6 flex flex-col gap-4 rounded-xl border border-destructive/20 bg-destructive/5 p-4">
+      <div>
+        <h3 className="font-display text-heading font-medium text-destructive">بازپرداخت به صندوق</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          جدا از «دریافت از مدیر قبلی» بالا — این مخصوص پولی است که خودتان از صندوق برداشته‌اید. هر بار بخشی
+          از آن را برمی‌گردانید همین‌جا ثبت کنید تا هم از «بدهی من به صندوق» کم شود، هم به موجودی واقعی صندوق
+          برگردد.
+        </p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="mr-amount">مبلغ (تومان)</Label>
+          <Input
+            id="mr-amount"
+            dir="ltr"
+            inputMode="numeric"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            placeholder="مثلاً ۲۰۰۰۰۰۰"
+          />
+        </div>
+        <JalaliDateField id="mr-date" label="تاریخ بازپرداخت" value={date} onChange={setDate} />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="mr-note">توضیح (اختیاری)</Label>
+        <Input id="mr-note" value={note} onChange={(event) => setNote(event.target.value)} />
+      </div>
+      {error ? (
+        <p className="text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <Button type="button" variant="outline" onClick={submit}>
+        ثبت بازپرداخت
+      </Button>
+
+      {sorted.length ? (
+        <ul className="flex flex-col gap-2">
+          {sorted.map((repayment) => (
+            <li
+              key={repayment.id}
+              className="flex items-center justify-between gap-3 rounded-xl bg-card px-3 py-2"
+            >
+              <div>
+                <p className="text-sm font-medium tabular-nums">{toman(repayment.amount)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatFaDate(repayment.date)}
+                  {repayment.note ? ` · ${repayment.note}` : ""}
+                </p>
+              </div>
+              {pending === repayment.id ? (
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={() => setPending(null)}>
+                    لغو
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      removeManagerRepayment(repayment.id);
+                      setPending(null);
+                    }}
+                  >
+                    حذف شود
+                  </Button>
+                </div>
+              ) : (
+                <Button type="button" size="sm" variant="ghost" onClick={() => setPending(repayment.id)}>
                   حذف
                 </Button>
               )}

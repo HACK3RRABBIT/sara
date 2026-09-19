@@ -43,6 +43,7 @@ function Dashboard() {
   const debt = totalDebt(state);
   const expected = fund + debt;
   const handover = pendingHandoverTotal(state) + settings.previousManagerReceivable;
+  const managerDebt = settings.managerDebtToFund;
 
   const debtors = useMemo(() => {
     return sortUnits(units)
@@ -88,6 +89,15 @@ function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
+      {managerDebt > 0 ? (
+        <section className="rounded-2xl bg-destructive/10 px-4 py-4 text-destructive sm:px-6 sm:py-5">
+          <h2 className="font-display text-heading font-medium">بدهی من به صندوق</h2>
+          <p className="mt-1 text-sm">
+            مبلغی که خودم از صندوق برداشته‌ام و هنوز برنگردانده‌ام — جدا از مطالبات ساکنان و مدیر قبلی.
+          </p>
+          <p className="mt-2 font-display text-xl font-medium tabular-nums">{toman(managerDebt)}</p>
+        </section>
+      ) : null}
       {debtors.length > 0 ? (
         <section className="rounded-2xl bg-destructive/10 px-4 py-4 text-destructive sm:px-6 sm:py-5">
           <h2 className="font-display text-heading font-medium">بدهکاران</h2>

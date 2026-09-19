@@ -8,6 +8,7 @@ const snapshotSchema = z.object({
   payments: z.array(z.any()),
   expenses: z.array(z.any()),
   handoverReceipts: z.array(z.any()),
+  managerRepayments: z.array(z.any()),
   settings: z.object({
     buildingName: z.string(),
     address: z.string(),
@@ -17,6 +18,7 @@ const snapshotSchema = z.object({
     baseCharge: z.number(),
     perPerson: z.number(),
     previousManagerReceivable: z.number(),
+    managerDebtToFund: z.number(),
   }),
   revision: z.number().int().nonnegative().optional(),
 });

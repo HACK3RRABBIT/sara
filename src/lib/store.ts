@@ -8,6 +8,7 @@ import {
   type Charge,
   type Expense,
   type HandoverReceipt,
+  type ManagerRepayment,
   type Payment,
   type PayStatus,
   type PaymentMethod,
@@ -23,6 +24,7 @@ import {
   getRemaining,
   getStatus,
   handoverReceiptsTotal,
+  managerRepaymentsTotal,
   monthDebt,
   monthKey,
   fromMonthKey,
@@ -46,6 +48,7 @@ export {
   getRemaining,
   getStatus,
   handoverReceiptsTotal,
+  managerRepaymentsTotal,
   monthDebt,
   monthKey,
   fromMonthKey,
@@ -60,6 +63,7 @@ export type {
   Charge,
   Expense,
   HandoverReceipt,
+  ManagerRepayment,
   Payment,
   PayStatus,
   PaymentMethod,
@@ -100,6 +104,7 @@ export const DEFAULT_SETTINGS: Settings = {
   baseCharge: 1_500_000,
   perPerson: 100_000,
   previousManagerReceivable: 0,
+  managerDebtToFund: 0,
 };
 
 function unitAmount(settings: Settings, unit: Unit) {
@@ -135,6 +140,7 @@ function createEmpty(): SeedSlice {
     payments: [],
     expenses: [],
     handoverReceipts: [],
+    managerRepayments: [],
     settings: DEFAULT_SETTINGS,
   };
 }
@@ -165,6 +171,8 @@ type BuildingState = DialogState &
     removeExpense: (id: string) => void;
     recordHandoverReceipt: (input: Omit<HandoverReceipt, "id">) => void;
     removeHandoverReceipt: (id: string) => void;
+    recordManagerRepayment: (input: Omit<ManagerRepayment, "id">) => void;
+    removeManagerRepayment: (id: string) => void;
     updateUnit: (id: string, patch: Partial<Omit<Unit, "id">>) => void;
     addUnit: () => string;
     removeUnit: (id: string) => void;
@@ -214,6 +222,7 @@ export const useBuildingStore = create<BuildingState>()((set, get) => ({
       payments: snapshot.payments ?? [],
       expenses: snapshot.expenses ?? [],
       handoverReceipts: snapshot.handoverReceipts ?? [],
+      managerRepayments: snapshot.managerRepayments ?? [],
       settings: { ...DEFAULT_SETTINGS, ...snapshot.settings },
       hydrated: true,
     }),
@@ -258,6 +267,22 @@ export const useBuildingStore = create<BuildingState>()((set, get) => ({
   },
   removeHandoverReceipt: (id) =>
     set({ handoverReceipts: get().handoverReceipts.filter((item) => item.id !== id) }),
+  recordManagerRepayment: (input) => {
+    const state = get();
+    set({
+      managerRepayments: [...state.managerRepayments, { ...input, id: uid() }],
+      // Lowering managerDebtToFund is what actually restores fundBalance —
+      // the repayment itself isn't separately added as income, or the
+      // withdrawal would effectively be un-counted twice. Never goes below
+      // zero for the same reason as the previous-manager receipt above.
+      settings: {
+        ...state.settings,
+        managerDebtToFund: Math.max(0, state.settings.managerDebtToFund - input.amount),
+      },
+    });
+  },
+  removeManagerRepayment: (id) =>
+    set({ managerRepayments: get().managerRepayments.filter((item) => item.id !== id) }),
   updateUnit: (id, patch) =>
     set({
       units: get().units.map((unit) => (unit.id === id ? { ...unit, note: unit.note ?? "", ...patch } : unit)),
@@ -412,6 +437,7 @@ function takeSnapshot(state: SeedSlice): BuildingSnapshot {
     payments: state.payments,
     expenses: state.expenses,
     handoverReceipts: state.handoverReceipts,
+    managerRepayments: state.managerRepayments,
     settings: state.settings,
   };
 }
@@ -534,6 +560,7 @@ export async function hydrateBuilding() {
     payments: snapshot.payments ?? [],
     expenses: snapshot.expenses ?? [],
     handoverReceipts: snapshot.handoverReceipts ?? [],
+    managerRepayments: snapshot.managerRepayments ?? [],
     settings: snapshot.settings,
   });
   useBuildingStore.getState().hydrateFrom(snapshot);
@@ -564,6 +591,7 @@ export function resetBuilding() {
     payments: [],
     expenses: [],
     handoverReceipts: [],
+    managerRepayments: [],
     settings: DEFAULT_SETTINGS,
   });
 }

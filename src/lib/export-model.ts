@@ -24,6 +24,7 @@ import {
   type Charge,
   type Expense,
   type HandoverReceipt,
+  type ManagerRepayment,
   type Payment,
   type PayStatus,
   type Unit,
@@ -69,6 +70,10 @@ export function activeMonths(snapshot: BuildingSnapshot): Array<{ year: number; 
   }
   for (const receipt of snapshot.handoverReceipts) {
     const j = isoToJalali(receipt.date);
+    keys.add(monthKey(j.year, j.month));
+  }
+  for (const repayment of snapshot.managerRepayments) {
+    const j = isoToJalali(repayment.date);
     keys.add(monthKey(j.year, j.month));
   }
   return [...keys]
@@ -241,6 +246,23 @@ export function buildExportModel(
     ]),
   };
 
+  // ---- بازپرداخت به صندوق ------------------------------------------------
+  const managerRepaymentSheet: SheetSpec = {
+    name: "بازپرداخت به صندوق",
+    columns: [
+      { header: "شناسه" },
+      { header: "مبلغ (تومان)" },
+      { header: "تاریخ (شمسی)" },
+      { header: "توضیح" },
+    ],
+    rows: snapshot.managerRepayments.map((repayment: ManagerRepayment) => [
+      repayment.id,
+      repayment.amount,
+      t(repayment.date),
+      repayment.note,
+    ]),
+  };
+
   // ---- گزارش واحدها (دِین) --------------------------------------------
   const reportsSheet: SheetSpec = {
     name: "گزارش واحدها",
@@ -280,6 +302,7 @@ export function buildExportModel(
       { header: "کل وصولی از ساکنان (تومان)" },
       { header: "دریافت از مدیر قبلی (تومان)" },
       { header: "کل هزینه (تومان)" },
+      { header: "بدهی من به صندوق (تومان)" },
       { header: "موجودی صندوق (تومان)" },
     ],
     rows: [
@@ -287,6 +310,7 @@ export function buildExportModel(
         snapshot.payments.filter((p) => !p.pendingHandover).reduce((s, p) => s + p.amount, 0),
         handoverReceiptsTotal(snapshot),
         snapshot.expenses.reduce((s, e) => s + e.amount, 0),
+        settings.managerDebtToFund,
         fundBalance(snapshot),
       ],
     ],
@@ -300,6 +324,7 @@ export function buildExportModel(
     "پرداخت‌ها": paymentsSheet,
     "هزینه‌ها": expensesSheet,
     "دریافت از مدیر قبلی": handoverSheet,
+    "بازپرداخت به صندوق": managerRepaymentSheet,
     "صندوق": fundSheet,
   };
   const sheetOrder = [
@@ -310,6 +335,7 @@ export function buildExportModel(
     "پرداخت‌ها",
     "هزینه‌ها",
     "دریافت از مدیر قبلی",
+    "بازپرداخت به صندوق",
     "صندوق",
   ];
 

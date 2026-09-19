@@ -1,5 +1,5 @@
 import { getSql } from "@/lib/db";
-import type { Charge, Expense, HandoverReceipt, Payment, Settings, Unit } from "@/lib/store";
+import type { Charge, Expense, HandoverReceipt, ManagerRepayment, Payment, Settings, Unit } from "@/lib/store";
 import { DEFAULT_SETTINGS, type BuildingSnapshot } from "@/lib/store";
 import { validateFee, validateSnapshot } from "@/lib/building-validate";
 
@@ -10,6 +10,7 @@ export const EMPTY_SNAPSHOT: BuildingSnapshot = {
   payments: [],
   expenses: [],
   handoverReceipts: [],
+  managerRepayments: [],
   settings: { ...DEFAULT_SETTINGS },
 };
 
@@ -57,8 +58,9 @@ export async function readBuilding(): Promise<BuildingSnapshot> {
     payments: unknown;
     expenses: unknown;
     handover_receipts: unknown;
+    manager_repayments: unknown;
     settings: unknown;
-  }>`select units, charges, payments, expenses, handover_receipts, settings from building_state where id = ${"default"} limit 1`;
+  }>`select units, charges, payments, expenses, handover_receipts, manager_repayments, settings from building_state where id = ${"default"} limit 1`;
   const row = rows[0];
   if (!row) return EMPTY_SNAPSHOT;
   const settings = {
@@ -71,6 +73,7 @@ export async function readBuilding(): Promise<BuildingSnapshot> {
     payments: parseJson<Payment[]>(row.payments, []),
     expenses: parseJson<Expense[]>(row.expenses, []),
     handoverReceipts: parseJson<HandoverReceipt[]>(row.handover_receipts, []),
+    managerRepayments: parseJson<ManagerRepayment[]>(row.manager_repayments, []),
     settings,
   });
 }
@@ -91,14 +94,15 @@ export async function writeBuilding(
 
   const nextRevision = revision + 1;
   await sql.query(
-    `insert into building_state (id, units, charges, payments, expenses, handover_receipts, settings, revision, updated_at)
-     values ($1, $2::jsonb, $3::jsonb, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8, now())
+    `insert into building_state (id, units, charges, payments, expenses, handover_receipts, manager_repayments, settings, revision, updated_at)
+     values ($1, $2::jsonb, $3::jsonb, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8::jsonb, $9, now())
      on conflict (id) do update set
        units = excluded.units,
        charges = excluded.charges,
        payments = excluded.payments,
        expenses = excluded.expenses,
        handover_receipts = excluded.handover_receipts,
+       manager_repayments = excluded.manager_repayments,
        settings = excluded.settings,
        revision = excluded.revision,
        updated_at = now()`,
@@ -109,6 +113,7 @@ export async function writeBuilding(
       JSON.stringify(clean.payments),
       JSON.stringify(clean.expenses),
       JSON.stringify(clean.handoverReceipts),
+      JSON.stringify(clean.managerRepayments),
       JSON.stringify(clean.settings),
       nextRevision,
     ],

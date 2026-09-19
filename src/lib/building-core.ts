@@ -77,6 +77,21 @@ export type HandoverReceipt = {
   note: string;
 };
 
+/** A repayment the *current* manager makes back into the fund, after having
+ * taken money out of it personally (tracked via `Settings.managerDebtToFund`).
+ * Recording one reduces `managerDebtToFund` by the same amount — that
+ * reduction alone is what restores `fundBalance`, so the repayment itself is
+ * not separately added as income (that would double-count it). Kept as its
+ * own list — distinct from `HandoverReceipt` — purely so the two debts (an
+ * outside previous manager vs. the current manager) are never shown mixed
+ * together. */
+export type ManagerRepayment = {
+  id: string;
+  amount: number;
+  date: string;
+  note: string;
+};
+
 export type Expense = {
   id: string;
   title: string;
@@ -99,6 +114,13 @@ export type Settings = {
    * e.g. still held by a previous manager. A running estimate you edit
    * yourself; shown on the dashboard, excluded from the actual fund balance. */
   previousManagerReceivable: number;
+  /** Money the *current* manager has personally taken out of the fund and
+   * still owes back. Unlike `previousManagerReceivable` (money that never
+   * reached the fund, so it's excluded from `fundBalance`), this money WAS
+   * in the fund and physically left — so it's subtracted from `fundBalance`
+   * the moment you raise it, and a `ManagerRepayment` lowers it again. A
+   * running total you edit yourself. */
+  managerDebtToFund: number;
 };
 
 export type SeedSlice = {
@@ -107,6 +129,7 @@ export type SeedSlice = {
   payments: Payment[];
   expenses: Expense[];
   handoverReceipts: HandoverReceipt[];
+  managerRepayments: ManagerRepayment[];
   settings: Settings;
 };
 
@@ -235,7 +258,7 @@ export function fundBalance(state: SeedSlice) {
       .reduce((sum, payment) => sum + payment.amount, 0) +
     state.handoverReceipts.reduce((sum, r) => sum + r.amount, 0);
   const spent = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  return income - spent;
+  return income - spent - state.settings.managerDebtToFund;
 }
 
 export function fundBalanceThrough(state: SeedSlice, year: number, month: number) {
@@ -267,6 +290,13 @@ export function pendingHandoverTotal(state: SeedSlice) {
 /** Total actually received back so far (see `HandoverReceipt`). */
 export function handoverReceiptsTotal(state: SeedSlice) {
   return state.handoverReceipts.reduce((sum, r) => sum + r.amount, 0);
+}
+
+/** Total the current manager has repaid back into the fund so far (see
+ * `ManagerRepayment`) — a display/audit total only; `fundBalance` reflects
+ * repayments through `Settings.managerDebtToFund`, not this list directly. */
+export function managerRepaymentsTotal(state: SeedSlice) {
+  return state.managerRepayments.reduce((sum, r) => sum + r.amount, 0);
 }
 
 export function reminderText(state: SeedSlice, unit: Unit, year: number, month: number) {
