@@ -188,7 +188,7 @@ export function buildExportModel(
       { header: "روش" },
       { header: "تاریخ (شمسی)" },
       { header: "توضیح" },
-      { header: "در انتظار تحویل" },
+      { header: "به صندوق نرسیده" },
     ],
     rows: snapshot.payments.map((payment: Payment) => {
       const unit = snapshot.units.find((u) => u.id === payment.unitId);
@@ -201,7 +201,7 @@ export function buildExportModel(
         METHOD_LABELS[payment.method],
         t(payment.date),
         payment.note,
-        payment.pendingHandover ? "بله" : "",
+        payment.notReachedFund ? "بله" : "",
       ];
     }),
   };
@@ -307,7 +307,7 @@ export function buildExportModel(
     ],
     rows: [
       [
-        snapshot.payments.filter((p) => !p.pendingHandover).reduce((s, p) => s + p.amount, 0),
+        snapshot.payments.filter((p) => !p.notReachedFund).reduce((s, p) => s + p.amount, 0),
         handoverReceiptsTotal(snapshot),
         snapshot.expenses.reduce((s, e) => s + e.amount, 0),
         settings.managerDebtToFund,

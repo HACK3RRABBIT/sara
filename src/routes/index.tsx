@@ -12,7 +12,7 @@ import {
   getRemaining,
   getStatus,
   monthTotals,
-  pendingHandoverTotal,
+  notReachedFundTotal,
   sortUnits,
   totalDebt,
   unitDebt,
@@ -42,7 +42,8 @@ function Dashboard() {
   const fund = fundBalance(state);
   const debt = totalDebt(state);
   const expected = fund + debt;
-  const handover = pendingHandoverTotal(state) + settings.previousManagerReceivable;
+  const receivable = settings.previousManagerReceivable;
+  const notReachedFund = notReachedFundTotal(state);
   const managerDebt = settings.managerDebtToFund;
 
   const debtors = useMemo(() => {
@@ -234,16 +235,24 @@ function Dashboard() {
         </ol>
       </section>
 
-      <section className={cn("grid gap-3", handover > 0 ? "sm:grid-cols-4" : "sm:grid-cols-3")}>
+      <section
+        className={cn(
+          "grid gap-3",
+          receivable > 0 && notReachedFund > 0
+            ? "sm:grid-cols-5"
+            : receivable > 0 || notReachedFund > 0
+              ? "sm:grid-cols-4"
+              : "sm:grid-cols-3",
+        )}
+      >
         <TreasuryStat label="موجودی صندوق" value={money(fund)} />
         <TreasuryStat label="موجودی در صورت وصول کامل" value={money(expected)} />
         <TreasuryStat label="کسری (مطالبات وصول‌نشده)" value={money(debt)} tone={debt > 0 ? "debt" : undefined} />
-        {handover > 0 ? (
-          <TreasuryStat
-            label="در انتظار تحویل از مدیر قبلی"
-            value={money(handover)}
-            tone="debt"
-          />
+        {receivable > 0 ? (
+          <TreasuryStat label="مطالبات از مدیر قبلی" value={money(receivable)} tone="debt" />
+        ) : null}
+        {notReachedFund > 0 ? (
+          <TreasuryStat label="پرداخت‌های به صندوق نرسیده" value={money(notReachedFund)} tone="debt" />
         ) : null}
       </section>
 

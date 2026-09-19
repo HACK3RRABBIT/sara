@@ -66,7 +66,7 @@ function PaymentDialog() {
   const [method, setMethod] = useState<PaymentMethod>("card");
   const [date, setDate] = useState(jalaliToIso(today.year, today.month, today.day));
   const [note, setNote] = useState("");
-  const [pendingHandover, setPendingHandover] = useState(false);
+  const [notReachedFund, setNotReachedFund] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -93,14 +93,14 @@ function PaymentDialog() {
       setMethod(current.method);
       setDate(current.date);
       setNote(current.note);
-      setPendingHandover(Boolean(current.pendingHandover));
+      setNotReachedFund(Boolean(current.notReachedFund));
     } else {
       const rest = nextUnit ? getRemaining(useBuildingStore.getState(), nextUnit, yy, mm) : 0;
       setAmount(rest ? String(rest) : "");
       setMethod("card");
       setDate(jalaliToIso(today.year, today.month, today.day));
       setNote("");
-      setPendingHandover(false);
+      setNotReachedFund(false);
     }
     setError(null);
     setConfirmDelete(false);
@@ -129,7 +129,7 @@ function PaymentDialog() {
       method,
       date,
       note,
-      pendingHandover,
+      notReachedFund,
     };
     if (editing) updatePayment(editing.id, payload);
     else recordPayment(payload);
@@ -201,12 +201,12 @@ function PaymentDialog() {
           <input
             type="checkbox"
             className="mt-0.5 size-4 accent-primary"
-            checked={pendingHandover}
-            onChange={(event) => setPendingHandover(event.target.checked)}
+            checked={notReachedFund}
+            onChange={(event) => setNotReachedFund(event.target.checked)}
           />
           <span>
-            ساکن پرداخت کرده، اما پول هنوز به صندوق نرسیده (مثلاً نزد مدیر قبلی مانده است). این واحد تسویه‌شده
-            ثبت می‌شود ولی در موجودی صندوق حساب نمی‌شود تا وصول شود.
+            پرداخت به صندوق نرسیده (مثلاً صرف هزینه‌ای شد، یا نزد مدیر قبلی مانده است). این واحد تسویه‌شده ثبت
+            می‌شود ولی در موجودی صندوق حساب نمی‌شود — علتش را در توضیح بالا بنویسید.
           </span>
         </label>
         {error ? (

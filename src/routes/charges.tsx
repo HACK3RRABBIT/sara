@@ -183,8 +183,8 @@ function ChargesPage() {
                           }}
                         >
                           {formatFaDate(payment.date)} · {rial(payment.amount)} · {METHOD_LABELS[payment.method]}
-                          {payment.pendingHandover ? (
-                            <span className="text-destructive"> · در انتظار تحویل</span>
+                          {payment.notReachedFund ? (
+                            <span className="text-destructive"> · به صندوق نرسیده</span>
                           ) : null}
                         </button>
                       ))

@@ -149,8 +149,8 @@ function UnitDetailPage() {
                       {METHOD_LABELS[payment.method]}
                       {payment.note ? ` · ${payment.note}` : ""}
                     </p>
-                    {payment.pendingHandover ? (
-                      <p className="mt-1 text-xs text-destructive">در انتظار تحویل — هنوز به صندوق نرسیده</p>
+                    {payment.notReachedFund ? (
+                      <p className="mt-1 text-xs text-destructive">به صندوق نرسیده</p>
                     ) : null}
                   </div>
                   <div className="flex flex-wrap gap-2" onPointerDown={(event) => event.stopPropagation()}>

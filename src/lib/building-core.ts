@@ -55,18 +55,20 @@ export type Payment = {
   date: string;
   note: string;
   /**
-   * The resident paid, but the money isn't in this building's treasury yet —
-   * e.g. paid to a previous manager who hasn't handed it over. Counts toward
-   * the unit's paid/remaining status (the resident isn't a debtor), but is
-   * excluded from `fundBalance`/`fundBalanceThrough` (not real cash on hand
-   * yet). Clear it once the money is actually received.
+   * The resident paid, but the money never reached (or will never reach)
+   * this building's treasury — e.g. spent directly on a building expense on
+   * the fund's behalf (a resident settled a bill themselves), or handed to
+   * a previous manager who hasn't passed it on. Counts toward the unit's
+   * paid/remaining status (the resident isn't a debtor), but is excluded
+   * from `fundBalance`/`fundBalanceThrough` (not real cash on hand). `note`
+   * should say why.
    */
-  pendingHandover?: boolean;
+  notReachedFund?: boolean;
 };
 
 /** Money actually received back from whoever was holding it (e.g. the
  * previous manager finally handing over funds). Real income — counted in
- * `fundBalance`, unlike a `pendingHandover` payment. Recording one also
+ * `fundBalance`, unlike a `notReachedFund` payment. Recording one also
  * reduces `Settings.previousManagerReceivable` by the same amount, so the
  * two numbers (what's still outstanding vs. what's actually in the
  * treasury) never have to be kept in sync by hand. */
@@ -254,7 +256,7 @@ export function totalDebt(state: SeedSlice) {
 export function fundBalance(state: SeedSlice) {
   const income =
     state.payments
-      .filter((payment) => !payment.pendingHandover)
+      .filter((payment) => !payment.notReachedFund)
       .reduce((sum, payment) => sum + payment.amount, 0) +
     state.handoverReceipts.reduce((sum, r) => sum + r.amount, 0);
   const spent = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
@@ -265,7 +267,7 @@ export function fundBalanceThrough(state: SeedSlice, year: number, month: number
   const bound = monthKey(year, month);
   const income =
     state.payments
-      .filter((p) => !p.pendingHandover && monthKey(p.year, p.month) <= bound)
+      .filter((p) => !p.notReachedFund && monthKey(p.year, p.month) <= bound)
       .reduce((sum, p) => sum + p.amount, 0) +
     state.handoverReceipts
       .filter((r) => monthKey(isoToJalali(r.date).year, isoToJalali(r.date).month) <= bound)
@@ -279,11 +281,12 @@ export function fundBalanceThrough(state: SeedSlice, year: number, month: number
   return income - spent;
 }
 
-/** Total still owed to the fund by a previous manager (or similar) — paid by
- * residents but not yet physically handed into this treasury. */
-export function pendingHandoverTotal(state: SeedSlice) {
+/** Total residents have paid that never reached this treasury — spent
+ * directly on a building expense, handed to a previous manager, or similar
+ * (see `Payment.notReachedFund`; each payment's `note` says which). */
+export function notReachedFundTotal(state: SeedSlice) {
   return state.payments
-    .filter((payment) => payment.pendingHandover)
+    .filter((payment) => payment.notReachedFund)
     .reduce((sum, payment) => sum + payment.amount, 0);
 }
 
