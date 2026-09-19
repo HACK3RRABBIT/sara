@@ -696,15 +696,26 @@ function SettingsDialog() {
       onOpenChange={(next) => !next && close()}
       title="تنظیمات ساختمان"
       description="نام ساختمان، کارت و مبلغ شارژ را اینجا عوض کنید. واحدها را از صفحهٔ واحدها ویرایش کنید. همه چیز در پایگاه داده ذخیره می‌شود."
+      className="sm:max-w-2xl"
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="s-name">نام ساختمان</Label>
-          <Input
-            id="s-name"
-            value={form.buildingName}
-            onChange={(event) => setForm({ ...form, buildingName: event.target.value })}
-          />
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="s-name">نام ساختمان</Label>
+            <Input
+              id="s-name"
+              value={form.buildingName}
+              onChange={(event) => setForm({ ...form, buildingName: event.target.value })}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="s-mgr">مدیر / خزانه‌دار</Label>
+            <Input
+              id="s-mgr"
+              value={form.manager}
+              onChange={(event) => setForm({ ...form, manager: event.target.value })}
+            />
+          </div>
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="s-addr">آدرس</Label>
@@ -712,14 +723,6 @@ function SettingsDialog() {
             id="s-addr"
             value={form.address}
             onChange={(event) => setForm({ ...form, address: event.target.value })}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="s-mgr">مدیر / خزانه‌دار</Label>
-          <Input
-            id="s-mgr"
-            value={form.manager}
-            onChange={(event) => setForm({ ...form, manager: event.target.value })}
           />
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -776,42 +779,44 @@ function SettingsDialog() {
         ) : (
           <p className="text-xs text-destructive">شارژ پایه باید بیشتر از صفر باشد.</p>
         )}
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="s-receivable">مطالبات از مدیر قبلی (تومان)</Label>
-          <Input
-            id="s-receivable"
-            dir="ltr"
-            inputMode="numeric"
-            value={form.previousManagerReceivable === 0 ? "" : String(form.previousManagerReceivable)}
-            onChange={(event) =>
-              setForm({ ...form, previousManagerReceivable: parseAmount(event.target.value) || 0 })
-            }
-            placeholder="۰"
-          />
-          <p className="text-xs text-muted-foreground">
-            پولی که ساکنان پرداخت کرده‌اند ولی هنوز از مدیر قبلی تحویل نگرفته‌اید — تخمین شما. در داشبورد جدا
-            از موجودی صندوق نشان داده می‌شود. وقتی واقعاً بخشی می‌رسد، آن را دستی کم نکنید — پایین همین صفحه
-            «دریافت از مدیر قبلی» را ثبت کنید تا هم از این عدد کم شود، هم به موجودی واقعی صندوق اضافه شود.
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3">
-          <Label htmlFor="s-owed">بدهی من به صندوق (تومان)</Label>
-          <Input
-            id="s-owed"
-            dir="ltr"
-            inputMode="numeric"
-            value={form.managerDebtToFund === 0 ? "" : String(form.managerDebtToFund)}
-            onChange={(event) =>
-              setForm({ ...form, managerDebtToFund: parseAmount(event.target.value) || 0 })
-            }
-            placeholder="۰"
-          />
-          <p className="text-xs text-muted-foreground">
-            مبلغی که خودتان از صندوق برداشته‌اید و هنوز برنگردانده‌اید — جدا از مطالبات ساکنان و مدیر قبلی، و
-            جدا از موجودی صندوق کم می‌شود چون این پول واقعاً از صندوق خارج شده. وقتی بخشی را برمی‌گردانید، آن
-            را دستی کم نکنید — پایین همین صفحه «بازپرداخت به صندوق» را ثبت کنید تا هم از این عدد کم شود، هم به
-            موجودی واقعی صندوق برگردد.
-          </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="s-receivable">مطالبات از مدیر قبلی (تومان)</Label>
+            <Input
+              id="s-receivable"
+              dir="ltr"
+              inputMode="numeric"
+              value={form.previousManagerReceivable === 0 ? "" : String(form.previousManagerReceivable)}
+              onChange={(event) =>
+                setForm({ ...form, previousManagerReceivable: parseAmount(event.target.value) || 0 })
+              }
+              placeholder="۰"
+            />
+            <p className="text-xs text-muted-foreground">
+              پولی که ساکنان پرداخت کرده‌اند ولی هنوز از مدیر قبلی تحویل نگرفته‌اید — تخمین شما. در داشبورد جدا
+              از موجودی صندوق نشان داده می‌شود. وقتی واقعاً بخشی می‌رسد، آن را دستی کم نکنید — پایین همین صفحه
+              «دریافت از مدیر قبلی» را ثبت کنید تا هم از این عدد کم شود، هم به موجودی واقعی صندوق اضافه شود.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3">
+            <Label htmlFor="s-owed">بدهی من به صندوق (تومان)</Label>
+            <Input
+              id="s-owed"
+              dir="ltr"
+              inputMode="numeric"
+              value={form.managerDebtToFund === 0 ? "" : String(form.managerDebtToFund)}
+              onChange={(event) =>
+                setForm({ ...form, managerDebtToFund: parseAmount(event.target.value) || 0 })
+              }
+              placeholder="۰"
+            />
+            <p className="text-xs text-muted-foreground">
+              مبلغی که خودتان از صندوق برداشته‌اید و هنوز برنگردانده‌اید — جدا از مطالبات ساکنان و مدیر قبلی، و
+              جدا از موجودی صندوق کم می‌شود چون این پول واقعاً از صندوق خارج شده. وقتی بخشی را برمی‌گردانید، آن
+              را دستی کم نکنید — پایین همین صفحه «بازپرداخت به صندوق» را ثبت کنید تا هم از این عدد کم شود، هم به
+              موجودی واقعی صندوق برگردد.
+            </p>
+          </div>
         </div>
         <Button type="submit" size="lg">
           ذخیره تنظیمات
