@@ -25,6 +25,9 @@ const snapshot: BuildingSnapshot = {
   expenses: [
     { id: "e1", title: "برق", category: "electricity", amount: 200_000, date: "2025-06-20T00:00:00.000Z", vendor: "", note: "" },
   ],
+  handoverReceipts: [
+    { id: "h1", amount: 500_000, date: "2025-06-22T00:00:00.000Z", note: "از مدیر قبلی" },
+  ],
   settings: {
     buildingName: "سرا",
     address: "",

@@ -27,6 +27,7 @@ function snapshot(over: Partial<BuildingSnapshot> = {}): BuildingSnapshot {
     charges: [],
     payments: [],
     expenses: [],
+    handoverReceipts: [],
     settings: defaults,
     ...over,
   };

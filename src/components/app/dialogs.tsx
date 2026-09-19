@@ -787,8 +787,9 @@ function SettingsDialog() {
             placeholder="۰"
           />
           <p className="text-xs text-muted-foreground">
-            پولی که ساکنان پرداخت کرده‌اند ولی هنوز از مدیر قبلی تحویل نگرفته‌اید. در داشبورد جدا از موجودی
-            صندوق نشان داده می‌شود؛ هر وقت بخشی رسید، همین‌جا کم‌ش کنید.
+            پولی که ساکنان پرداخت کرده‌اند ولی هنوز از مدیر قبلی تحویل نگرفته‌اید — تخمین شما. در داشبورد جدا
+            از موجودی صندوق نشان داده می‌شود. وقتی واقعاً بخشی می‌رسد، آن را دستی کم نکنید — پایین همین صفحه
+            «دریافت از مدیر قبلی» را ثبت کنید تا هم از این عدد کم شود، هم به موجودی واقعی صندوق اضافه شود.
           </p>
         </div>
         <Button type="submit" size="lg">
@@ -797,9 +798,115 @@ function SettingsDialog() {
       </form>
       {/* Outside the settings <form>: nested forms are invalid HTML and the
           browser would strip the inner ones, breaking both buttons. */}
+      <HandoverReceiptsSection />
       <AdminAccountSection />
       <BackupSection buildingName={settings.buildingName} onCleared={close} />
     </Dialog>
+  );
+}
+
+function HandoverReceiptsSection() {
+  const receipts = useBuildingStore((s) => s.handoverReceipts);
+  const recordHandoverReceipt = useBuildingStore((s) => s.recordHandoverReceipt);
+  const removeHandoverReceipt = useBuildingStore((s) => s.removeHandoverReceipt);
+  const today = jalaliToday();
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(jalaliToIso(today.year, today.month, today.day));
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
+
+  function submit() {
+    const value = parseAmount(amount);
+    if (!Number.isFinite(value) || value <= 0) {
+      setError("مبلغ معتبر وارد کنید.");
+      return;
+    }
+    recordHandoverReceipt({ amount: value, date, note: note.trim() });
+    setAmount("");
+    setNote("");
+    setDate(jalaliToIso(today.year, today.month, today.day));
+    setError(null);
+  }
+
+  const sorted = [...receipts].sort((a, b) => b.date.localeCompare(a.date));
+
+  return (
+    <div className="mt-6 flex flex-col gap-4 border-t border-border pt-6">
+      <div>
+        <h3 className="font-display text-heading font-medium">دریافت از مدیر قبلی</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          هر بار بخشی از مطالباتی که بالا نوشتید واقعاً به شما برسد، همین‌جا ثبت کنید — هم از آن مطالبات کم
+          می‌شود، هم به موجودی واقعی صندوق اضافه می‌شود.
+        </p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="hr-amount">مبلغ (تومان)</Label>
+          <Input
+            id="hr-amount"
+            dir="ltr"
+            inputMode="numeric"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            placeholder="مثلاً ۲۰۰۰۰۰۰"
+          />
+        </div>
+        <JalaliDateField id="hr-date" label="تاریخ دریافت" value={date} onChange={setDate} />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="hr-note">توضیح (اختیاری)</Label>
+        <Input id="hr-note" value={note} onChange={(event) => setNote(event.target.value)} />
+      </div>
+      {error ? (
+        <p className="text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <Button type="button" variant="outline" onClick={submit}>
+        ثبت دریافت
+      </Button>
+
+      {sorted.length ? (
+        <ul className="flex flex-col gap-2">
+          {sorted.map((receipt) => (
+            <li
+              key={receipt.id}
+              className="flex items-center justify-between gap-3 rounded-xl bg-muted/60 px-3 py-2"
+            >
+              <div>
+                <p className="text-sm font-medium tabular-nums">{toman(receipt.amount)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatFaDate(receipt.date)}
+                  {receipt.note ? ` · ${receipt.note}` : ""}
+                </p>
+              </div>
+              {pending === receipt.id ? (
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={() => setPending(null)}>
+                    لغو
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      removeHandoverReceipt(receipt.id);
+                      setPending(null);
+                    }}
+                  >
+                    حذف شود
+                  </Button>
+                </div>
+              ) : (
+                <Button type="button" size="sm" variant="ghost" onClick={() => setPending(receipt.id)}>
+                  حذف
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }
 

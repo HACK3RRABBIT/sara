@@ -15,6 +15,7 @@ export function validateSnapshot(input: {
   charges?: unknown;
   payments?: unknown;
   expenses?: unknown;
+  handoverReceipts?: unknown;
   settings?: Partial<Record<keyof typeof DEFAULT_SETTINGS, unknown>>;
 }) {
   const settings = { ...DEFAULT_SETTINGS, ...input.settings } as Record<string, unknown>;
@@ -23,6 +24,7 @@ export function validateSnapshot(input: {
     charges: Array.isArray(input.charges) ? input.charges : [],
     payments: Array.isArray(input.payments) ? input.payments : [],
     expenses: Array.isArray(input.expenses) ? input.expenses : [],
+    handoverReceipts: Array.isArray(input.handoverReceipts) ? input.handoverReceipts : [],
     settings: {
       ...settings,
       buildingName: String(settings.buildingName ?? "").slice(0, 100),

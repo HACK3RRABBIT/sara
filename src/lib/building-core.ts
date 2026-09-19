@@ -64,6 +64,19 @@ export type Payment = {
   pendingHandover?: boolean;
 };
 
+/** Money actually received back from whoever was holding it (e.g. the
+ * previous manager finally handing over funds). Real income — counted in
+ * `fundBalance`, unlike a `pendingHandover` payment. Recording one also
+ * reduces `Settings.previousManagerReceivable` by the same amount, so the
+ * two numbers (what's still outstanding vs. what's actually in the
+ * treasury) never have to be kept in sync by hand. */
+export type HandoverReceipt = {
+  id: string;
+  amount: number;
+  date: string;
+  note: string;
+};
+
 export type Expense = {
   id: string;
   title: string;
@@ -93,6 +106,7 @@ export type SeedSlice = {
   charges: Charge[];
   payments: Payment[];
   expenses: Expense[];
+  handoverReceipts: HandoverReceipt[];
   settings: Settings;
 };
 
@@ -215,18 +229,24 @@ export function totalDebt(state: SeedSlice) {
 }
 
 export function fundBalance(state: SeedSlice) {
-  const income = state.payments
-    .filter((payment) => !payment.pendingHandover)
-    .reduce((sum, payment) => sum + payment.amount, 0);
+  const income =
+    state.payments
+      .filter((payment) => !payment.pendingHandover)
+      .reduce((sum, payment) => sum + payment.amount, 0) +
+    state.handoverReceipts.reduce((sum, r) => sum + r.amount, 0);
   const spent = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
   return income - spent;
 }
 
 export function fundBalanceThrough(state: SeedSlice, year: number, month: number) {
   const bound = monthKey(year, month);
-  const income = state.payments
-    .filter((p) => !p.pendingHandover && monthKey(p.year, p.month) <= bound)
-    .reduce((sum, p) => sum + p.amount, 0);
+  const income =
+    state.payments
+      .filter((p) => !p.pendingHandover && monthKey(p.year, p.month) <= bound)
+      .reduce((sum, p) => sum + p.amount, 0) +
+    state.handoverReceipts
+      .filter((r) => monthKey(isoToJalali(r.date).year, isoToJalali(r.date).month) <= bound)
+      .reduce((sum, r) => sum + r.amount, 0);
   const spent = state.expenses
     .filter((e) => {
       const j = expenseMonth(e);
@@ -242,6 +262,11 @@ export function pendingHandoverTotal(state: SeedSlice) {
   return state.payments
     .filter((payment) => payment.pendingHandover)
     .reduce((sum, payment) => sum + payment.amount, 0);
+}
+
+/** Total actually received back so far (see `HandoverReceipt`). */
+export function handoverReceiptsTotal(state: SeedSlice) {
+  return state.handoverReceipts.reduce((sum, r) => sum + r.amount, 0);
 }
 
 export function reminderText(state: SeedSlice, unit: Unit, year: number, month: number) {

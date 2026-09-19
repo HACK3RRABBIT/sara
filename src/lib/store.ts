@@ -7,6 +7,7 @@ import {
   type BuildingSnapshot,
   type Charge,
   type Expense,
+  type HandoverReceipt,
   type Payment,
   type PayStatus,
   type PaymentMethod,
@@ -21,6 +22,7 @@ import {
   getPaid,
   getRemaining,
   getStatus,
+  handoverReceiptsTotal,
   monthDebt,
   monthKey,
   fromMonthKey,
@@ -43,6 +45,7 @@ export {
   getPaid,
   getRemaining,
   getStatus,
+  handoverReceiptsTotal,
   monthDebt,
   monthKey,
   fromMonthKey,
@@ -56,6 +59,7 @@ export type {
   BuildingSnapshot,
   Charge,
   Expense,
+  HandoverReceipt,
   Payment,
   PayStatus,
   PaymentMethod,
@@ -130,6 +134,7 @@ function createEmpty(): SeedSlice {
     charges: [],
     payments: [],
     expenses: [],
+    handoverReceipts: [],
     settings: DEFAULT_SETTINGS,
   };
 }
@@ -158,6 +163,8 @@ type BuildingState = DialogState &
     removePayment: (id: string) => void;
     addExpense: (input: Omit<Expense, "id">) => void;
     removeExpense: (id: string) => void;
+    recordHandoverReceipt: (input: Omit<HandoverReceipt, "id">) => void;
+    removeHandoverReceipt: (id: string) => void;
     updateUnit: (id: string, patch: Partial<Omit<Unit, "id">>) => void;
     addUnit: () => string;
     removeUnit: (id: string) => void;
@@ -206,6 +213,7 @@ export const useBuildingStore = create<BuildingState>()((set, get) => ({
       charges: snapshot.charges ?? [],
       payments: snapshot.payments ?? [],
       expenses: snapshot.expenses ?? [],
+      handoverReceipts: snapshot.handoverReceipts ?? [],
       settings: { ...DEFAULT_SETTINGS, ...snapshot.settings },
       hydrated: true,
     }),
@@ -233,6 +241,23 @@ export const useBuildingStore = create<BuildingState>()((set, get) => ({
       expenseOpen: false,
     }),
   removeExpense: (id) => set({ expenses: get().expenses.filter((item) => item.id !== id) }),
+  recordHandoverReceipt: (input) => {
+    const state = get();
+    set({
+      handoverReceipts: [...state.handoverReceipts, { ...input, id: uid() }],
+      // The two numbers (what's still outstanding vs. what's actually in the
+      // treasury) stay in sync automatically instead of needing a second,
+      // easy-to-forget manual edit. Never goes below zero — if it would,
+      // that's a mismatch worth noticing, not silently carrying a negative
+      // "receivable" forward.
+      settings: {
+        ...state.settings,
+        previousManagerReceivable: Math.max(0, state.settings.previousManagerReceivable - input.amount),
+      },
+    });
+  },
+  removeHandoverReceipt: (id) =>
+    set({ handoverReceipts: get().handoverReceipts.filter((item) => item.id !== id) }),
   updateUnit: (id, patch) =>
     set({
       units: get().units.map((unit) => (unit.id === id ? { ...unit, note: unit.note ?? "", ...patch } : unit)),
@@ -386,6 +411,7 @@ function takeSnapshot(state: SeedSlice): BuildingSnapshot {
     charges: state.charges,
     payments: state.payments,
     expenses: state.expenses,
+    handoverReceipts: state.handoverReceipts,
     settings: state.settings,
   };
 }
@@ -507,6 +533,7 @@ export async function hydrateBuilding() {
     charges: snapshot.charges ?? [],
     payments: snapshot.payments ?? [],
     expenses: snapshot.expenses ?? [],
+    handoverReceipts: snapshot.handoverReceipts ?? [],
     settings: snapshot.settings,
   });
   useBuildingStore.getState().hydrateFrom(snapshot);
@@ -536,6 +563,7 @@ export function resetBuilding() {
     charges: [],
     payments: [],
     expenses: [],
+    handoverReceipts: [],
     settings: DEFAULT_SETTINGS,
   });
 }

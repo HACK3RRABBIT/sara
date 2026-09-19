@@ -15,6 +15,7 @@ import {
   getRemaining,
   getPaid,
   getStatus,
+  handoverReceiptsTotal,
   monthDebt,
   monthKey,
   monthTotals,
@@ -22,6 +23,7 @@ import {
   type BuildingSnapshot,
   type Charge,
   type Expense,
+  type HandoverReceipt,
   type Payment,
   type PayStatus,
   type Unit,
@@ -63,6 +65,10 @@ export function activeMonths(snapshot: BuildingSnapshot): Array<{ year: number; 
   for (const payment of snapshot.payments) keys.add(monthKey(payment.year, payment.month));
   for (const expense of snapshot.expenses) {
     const j = expenseMonth(expense);
+    keys.add(monthKey(j.year, j.month));
+  }
+  for (const receipt of snapshot.handoverReceipts) {
+    const j = isoToJalali(receipt.date);
     keys.add(monthKey(j.year, j.month));
   }
   return [...keys]
@@ -218,6 +224,23 @@ export function buildExportModel(
     ]),
   };
 
+  // ---- دریافت از مدیر قبلی ----------------------------------------------
+  const handoverSheet: SheetSpec = {
+    name: "دریافت از مدیر قبلی",
+    columns: [
+      { header: "شناسه" },
+      { header: "مبلغ (تومان)" },
+      { header: "تاریخ (شمسی)" },
+      { header: "توضیح" },
+    ],
+    rows: snapshot.handoverReceipts.map((receipt: HandoverReceipt) => [
+      receipt.id,
+      receipt.amount,
+      t(receipt.date),
+      receipt.note,
+    ]),
+  };
+
   // ---- گزارش واحدها (دِین) --------------------------------------------
   const reportsSheet: SheetSpec = {
     name: "گزارش واحدها",
@@ -254,13 +277,15 @@ export function buildExportModel(
   const fundSheet: SheetSpec = {
     name: "صندوق",
     columns: [
-      { header: "کل وصولی (تومان)" },
+      { header: "کل وصولی از ساکنان (تومان)" },
+      { header: "دریافت از مدیر قبلی (تومان)" },
       { header: "کل هزینه (تومان)" },
       { header: "موجودی صندوق (تومان)" },
     ],
     rows: [
       [
-        snapshot.payments.reduce((s, p) => s + p.amount, 0),
+        snapshot.payments.filter((p) => !p.pendingHandover).reduce((s, p) => s + p.amount, 0),
+        handoverReceiptsTotal(snapshot),
         snapshot.expenses.reduce((s, e) => s + e.amount, 0),
         fundBalance(snapshot),
       ],
@@ -274,6 +299,7 @@ export function buildExportModel(
     "شارژها": chargesSheet,
     "پرداخت‌ها": paymentsSheet,
     "هزینه‌ها": expensesSheet,
+    "دریافت از مدیر قبلی": handoverSheet,
     "صندوق": fundSheet,
   };
   const sheetOrder = [
@@ -283,6 +309,7 @@ export function buildExportModel(
     "شارژها",
     "پرداخت‌ها",
     "هزینه‌ها",
+    "دریافت از مدیر قبلی",
     "صندوق",
   ];
 
