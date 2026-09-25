@@ -32,16 +32,14 @@ export function faNum(n: number) {
 }
 
 export function money(n: number) {
-  const t = Math.round(n);
-  const r = t * 10;
-  return `${faNum(r)} ریال (${faNum(t)} تومان)`;
+  return `${faNum(Math.round(n * 10))} ریال (${faNum(Math.round(n))} تومان)`;
 }
 
 /** Rial-only, no Toman parenthetical — for tight layouts (compact list rows,
  * dense stat grids) where the full dual-currency string from `money()` would
  * wrap and break alignment. Still leads with Rial, per the same rule. */
 export function rial(n: number) {
-  return `${faNum(Math.round(n) * 10)} ریال`;
+  return `${faNum(Math.round(n * 10))} ریال`;
 }
 
 export function parseAmount(raw: string) {

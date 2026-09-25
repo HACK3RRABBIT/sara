@@ -88,6 +88,7 @@ function ExpensesPage() {
                   {item.vendor ? ` · ${item.vendor}` : ""}
                 </p>
                 {item.note ? <p className="mt-1 text-sm text-muted-foreground">{item.note}</p> : null}
+                {item.notFromFund ? <p className="mt-1 text-xs text-destructive">از صندوق پرداخت نشده</p> : null}
               </div>
               <div className="flex items-center gap-3" onPointerDown={(event) => event.stopPropagation()}>
                 <p className="font-display text-xl font-medium">{money(item.amount)}</p>

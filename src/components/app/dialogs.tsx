@@ -530,10 +530,12 @@ function ExpenseDialog() {
   const [vendor, setVendor] = useState("");
   const [date, setDate] = useState(jalaliToIso(today.year, today.month, today.day));
   const [note, setNote] = useState("");
+  const [notFromFund, setNotFromFund] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    setNotFromFund(false);
     setTitle("");
     setCategory("repair");
     setAmount("");
@@ -561,6 +563,7 @@ function ExpenseDialog() {
       vendor: vendor.trim(),
       date,
       note,
+      notFromFund,
     });
   }
 
@@ -608,6 +611,18 @@ function ExpenseDialog() {
           <Label htmlFor="ex-note">توضیح</Label>
           <Input id="ex-note" value={note} onChange={(event) => setNote(event.target.value)} />
         </div>
+        <label className="flex items-start gap-2.5 rounded-xl bg-muted/60 px-3 py-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 accent-primary"
+            checked={notFromFund}
+            onChange={(event) => setNotFromFund(event.target.checked)}
+          />
+          <span>
+            از صندوق پرداخت نشده (مثلاً یکی از ساکنین خودش قبض را داده و به حساب شارژش گذاشته شده). هزینهٔ ماه
+            حساب می‌شود ولی از موجودی صندوق کم نمی‌شود — علتش را در توضیح بالا بنویسید.
+          </span>
+        </label>
         {error ? (
           <p className="text-sm text-destructive" role="alert">
             {error}

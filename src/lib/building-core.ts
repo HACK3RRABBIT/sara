@@ -102,6 +102,11 @@ export type Expense = {
   date: string;
   vendor: string;
   note: string;
+  /** A real building cost that was NOT paid out of this treasury — e.g. a
+   * resident paid the bill directly and was credited against their charges
+   * (the matching payments carry `notReachedFund`). Still counted as a cost
+   * of the month, but excluded from `fundBalance`/`fundBalanceThrough`. */
+  notFromFund?: boolean;
 };
 
 export type Settings = {
@@ -259,7 +264,9 @@ export function fundBalance(state: SeedSlice) {
       .filter((payment) => !payment.notReachedFund)
       .reduce((sum, payment) => sum + payment.amount, 0) +
     state.handoverReceipts.reduce((sum, r) => sum + r.amount, 0);
-  const spent = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const spent = state.expenses
+    .filter((expense) => !expense.notFromFund)
+    .reduce((sum, expense) => sum + expense.amount, 0);
   return income - spent - state.settings.managerDebtToFund;
 }
 
@@ -274,6 +281,7 @@ export function fundBalanceThrough(state: SeedSlice, year: number, month: number
       .reduce((sum, r) => sum + r.amount, 0);
   const spent = state.expenses
     .filter((e) => {
+      if (e.notFromFund) return false;
       const j = expenseMonth(e);
       return monthKey(j.year, j.month) <= bound;
     })

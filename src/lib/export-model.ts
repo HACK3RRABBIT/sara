@@ -217,6 +217,7 @@ export function buildExportModel(
       { header: "تاریخ (شمسی)" },
       { header: "پرداخت‌کننده / فروشنده" },
       { header: "توضیح" },
+      { header: "از صندوق پرداخت نشده" },
     ],
     rows: snapshot.expenses.map((expense: Expense) => [
       expense.id,
@@ -226,6 +227,7 @@ export function buildExportModel(
       t(expense.date),
       expense.vendor,
       expense.note,
+      expense.notFromFund ? "بله" : "",
     ]),
   };
 
@@ -301,7 +303,7 @@ export function buildExportModel(
     columns: [
       { header: "کل وصولی از ساکنان (تومان)" },
       { header: "دریافت از مدیر قبلی (تومان)" },
-      { header: "کل هزینه (تومان)" },
+      { header: "کل هزینه از صندوق (تومان)" },
       { header: "بدهی من به صندوق (تومان)" },
       { header: "موجودی صندوق (تومان)" },
     ],
@@ -309,7 +311,7 @@ export function buildExportModel(
       [
         snapshot.payments.filter((p) => !p.notReachedFund).reduce((s, p) => s + p.amount, 0),
         handoverReceiptsTotal(snapshot),
-        snapshot.expenses.reduce((s, e) => s + e.amount, 0),
+        snapshot.expenses.filter((e) => !e.notFromFund).reduce((s, e) => s + e.amount, 0),
         settings.managerDebtToFund,
         fundBalance(snapshot),
       ],

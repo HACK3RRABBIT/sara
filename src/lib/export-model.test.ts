@@ -6,7 +6,8 @@ import {
   formatAmount,
   sanitizeFileName,
 } from "./export-model.ts";
-import { monthDebt, totalDebt, fundBalanceThrough, monthTotals } from "./building-core.ts";
+import { monthDebt, totalDebt, fundBalance, fundBalanceThrough, monthTotals } from "./building-core.ts";
+import { money } from "./format.ts";
 import type { BuildingSnapshot } from "./building-core.ts";
 import { validateFee, validateSnapshot } from "./building-validate.ts";
 
@@ -139,5 +140,24 @@ describe("validateFee / validateSnapshot", () => {
     });
     assert.equal(clean.settings.baseCharge, 0);
     assert.equal(clean.settings.perPerson, 0);
+  });
+});
+
+describe("fund balance vs. non-cash entries", () => {
+  it("excludes payments that never reached the fund and expenses not paid from it", () => {
+    const snap = snapshot({
+      payments: [
+        { id: "p1", unitId: "u1", year: 1405, month: 6, amount: 1_900_000, method: "card", date: "", note: "" },
+        { id: "p2", unitId: "u1", year: 1405, month: 5, amount: 1_900_000, method: "cash", date: "", note: "", notReachedFund: true },
+      ],
+      expenses: [
+        { id: "e1", title: "آب", category: "water", amount: 9_936_200, date: "2025-08-05", vendor: "", note: "", notFromFund: true },
+        { id: "e2", title: "برق", category: "electricity", amount: 1_804_200, date: "2025-08-05", vendor: "", note: "" },
+      ],
+    });
+    assert.equal(fundBalance(snap), 1_900_000 - 1_804_200);
+  });
+  it("shows the exact rial amount even when it isn't a whole toman", () => {
+    assert.equal(money(4_054_630.4), "۴۰٬۵۴۶٬۳۰۴ ریال (۴٬۰۵۴٬۶۳۰ تومان)");
   });
 });
